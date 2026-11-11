@@ -37,12 +37,17 @@ nav button.on{color:var(--g);font-weight:700}
 .wk div{flex:1;text-align:center;font-weight:700}
 label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 input{width:100%;font-size:17px;padding:12px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx)}
+.prog{height:8px;border-radius:6px;background:var(--bd);margin-top:8px;overflow:hidden}.prog i{display:block;height:100%;background:var(--g)}
+#sum .undo{width:52px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:20px}
+.btn2{width:100%;padding:13px;margin-top:6px;border-radius:12px;border:0;background:var(--g);color:#fff;font-size:15px;font-weight:700}
+textarea{width:100%;height:90px;font-size:12px;padding:10px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx)}
+#toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 .btn{width:100%;padding:13px;margin-top:14px;border-radius:12px;border:1px solid var(--r);background:none;color:var(--r);font-size:15px}
 </style>
 </head>
 <body>
 <div id="app"></div>
-<div id="sum"></div>
+<div id="sum"></div><div id="toast"></div>
 <nav>
  <button data-a="v-tick" id="t-tick"><b>✓</b>Tick</button>
  <button data-a="v-hisab" id="t-hisab"><b>₹</b>Hisaab</button>
@@ -65,17 +70,21 @@ const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart
 const tom=v=>{const p=(v||'').split(':');return p.length==2?(+p[0])*60+(+p[1]):NaN};
 const money=n=>'₹'+Math.round(n*100)/100;
 const cnt=day=>{const v=Object.values(day||{});return{c:v.filter(x=>x==1).length,f:v.filter(x=>x==2).length,x:v.filter(x=>x==3).length}};
+const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(()=>{e.style.opacity=0},1800)};
+const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
 const cls={1:'c',2:'f',3:'x'};
-let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
+let hist=[],lastTxt='';let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
 
 function summary(){
  const n=cnt(db[cur]);
  $('sum').style.display=view==='tick'?'flex':'none';
- $('sum').innerHTML='<div style="background:var(--g)">✓ '+n.c+' Pure</div><div style="background:#65a30d">↩ '+n.f+' Refund</div><div style="background:var(--r)">✕ '+n.x+' Cancel</div>';
+ $('sum').innerHTML='<div style="background:var(--g)">✓ '+n.c+' Pure</div><div style="background:#65a30d">↩ '+n.f+' Refund</div><div style="background:var(--r)">✕ '+n.x+' Cancel</div><button class="undo" data-a="undo">↶</button>';
 }
 function tick(){
  const day=db[cur]||{},now=new Date(),isT=cur===iso(now),nm=now.getHours()*60+now.getMinutes();
  let h='<div class="dbar"><button data-a="pd">‹</button><div data-a="today">'+dl(cur)+'</div><button data-a="nd">›</button></div>',ch=-1;
+ const n0=cnt(day),tot=Math.floor((cfg.en-cfg.st)/15)+1,dn=n0.c+n0.f+n0.x;
+ h+='<div class="card" style="padding:10px 14px"><div style="display:flex;justify-content:space-between;font-size:14px"><span>'+dn+' / '+tot+' slot bhare</span><b style="color:var(--g)">Kamai: '+money((n0.c+n0.f)*cfg.pr)+'</b></div><div class="prog"><i style="width:'+Math.round(dn/tot*100)+'%"></i></div></div>';
  for(let m=cfg.st;m<=cfg.en;m+=15){
   const hr=Math.floor(m/60),st=day[m]||0;
   if(hr!=ch){if(ch>=0)h+='</div>';h+='<h3>'+hlabel(hr)+'</h3><div class="grid">';ch=hr}
@@ -88,16 +97,18 @@ function tick(){
 }
 function hisab(){
  const d=pd(wk),off=(d.getDay()+6)%7,mon=addD(wk,-off),sun=addD(mon,6);
- let tc=0,rows='';
- for(let i=0;i<7;i++){const s=addD(mon,i),n=cnt(db[s]),t=n.c+n.f;tc+=t;
+ let tc=0,rows='',tx='';
+ for(let i=0;i<7;i++){const s=addD(mon,i),n=cnt(db[s]),t=n.c+n.f;tc+=t;tx+=dl(s)+': '+t+' match\n';
   rows+='<div class="row"><div>'+dl(s)+'<br><span style="color:var(--mut)">✓'+n.c+'  ↩'+n.f+'  ✕'+n.x+'</span></div><b>'+t+' match · '+money(t*cfg.pr)+'</b></div>'}
+ lastTxt='Match Tick '+pd(mon).getDate()+' '+MN[pd(mon).getMonth()]+' – '+pd(sun).getDate()+' '+MN[pd(sun).getMonth()]+'\n'+tx+'Total: '+tc+' match = '+money(tc*cfg.pr);
  $('app').innerHTML='<h2>Hisaab</h2><div class="wk"><button data-a="pw">‹</button><div>'+pd(mon).getDate()+' '+MN[pd(mon).getMonth()]+' – '+pd(sun).getDate()+' '+MN[pd(sun).getMonth()]+'</div><button data-a="nw">›</button></div>'
- +'<div class="card"><div style="color:var(--mut);font-size:13px">Is hafte ki kamai</div><div class="big" style="color:var(--g)">'+money(tc*cfg.pr)+'</div><div style="color:var(--mut);font-size:13px">'+tc+' match (green + lime) × '+money(cfg.pr)+'</div></div><div class="card">'+rows+'</div>';
+ +'<div class="card"><div style="color:var(--mut);font-size:13px">Is hafte ki kamai</div><div class="big" style="color:var(--g)">'+money(tc*cfg.pr)+'</div><div style="color:var(--mut);font-size:13px">'+tc+' match (green + lime) × '+money(cfg.pr)+'</div></div><div class="card">'+rows+'</div><button class="btn2" data-a="share">Hafte ka summary share / copy</button>';
 }
 function sett(){
  $('app').innerHTML='<h2>Settings</h2><div class="card"><label>Ek match ka rate ₹</label><input type="number" id="pr" inputmode="decimal" step="any" value="'+cfg.pr+'">'
  +'<label>Pehla match</label><input type="time" id="st" value="'+hhmm(cfg.st)+'"><label>Aakhri match</label><input type="time" id="en" value="'+hhmm(cfg.en)+'">'
- +'<button class="btn" data-a="reset">Is din ke saare ticks hatao ('+dl(cur)+')</button></div>';
+ +'<button class="btn" data-a="reset">Is din ke saare ticks hatao ('+dl(cur)+')</button></div>'
+ +'<div class="card"><b>Backup</b><div style="font-size:13px;color:var(--mut);margin:4px 0 8px">Backup banao, text kahin save kar lo (WhatsApp / Notes). Phone badle to wahi text yahan paste karke Restore karo.</div><textarea id="bk" placeholder="Backup yahan aayega, ya restore ke liye yahan paste karo"></textarea><button class="btn2" data-a="bkup">Backup banao + copy</button><button class="btn2" style="background:#475569" data-a="rest">Restore karo</button></div>';
 }
 function render(){
  ['tick','hisab','set'].forEach(v=>$('t-'+v).className=v===view?'on':'');
@@ -106,7 +117,7 @@ function render(){
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-a],[data-i]');if(!b)return;
- if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};const n=((db[cur][m]||0)+1)%4;
+ if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(12);const n=((db[cur][m]||0)+1)%4;
   if(n)db[cur][m]=n;else delete db[cur][m];save();scrolled=true;tick();summary();return}
  const a=b.dataset.a;
  if(a.slice(0,2)==='v-'){view=a.slice(2);scrolled=view!=='tick'?false:scrolled}
@@ -116,6 +127,10 @@ document.addEventListener('click',e=>{
  else if(a==='pw')wk=addD(wk,-7);
  else if(a==='nw')wk=addD(wk,7);
  else if(a==='reset'){if(confirm('Is din ke saare ticks hata dun?')){delete db[cur];save()}}
+ else if(a==='undo'){const u=hist.pop();if(!u){toast('Undo ke liye kuch nahi');return}db[u.d]=db[u.d]||{};if(u.p)db[u.d][u.m]=u.p;else delete db[u.d][u.m];save();cur=u.d;scrolled=true}
+ else if(a==='share'){if(typeof navigator!=='undefined'&&navigator.share){navigator.share({text:lastTxt}).catch(()=>copy(lastTxt))}else copy(lastTxt);return}
+ else if(a==='bkup'){const t=JSON.stringify({db:db,cfg:cfg});$('bk').value=t;copy(t);return}
+ else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
  if(a==='v-hisab')wk=cur;
  render();
 });
