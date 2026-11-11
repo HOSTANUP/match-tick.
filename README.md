@@ -4,7 +4,7 @@ Free Fire tournament host ke liye simple match tracker. Phone par app ki tarah c
 
 ## Features
 
-- Roz ke 48 match slots: 10:00 AM se 9:45 PM tak, har ghante 4 matches
+- Har 15 minute ka slot (ghante mein 4 matches). Pehla aur aakhri match ka time khud set karo (default 10:00 AM se 10:00 PM)
 - Ek tap mein status badlo:
   - 1 tap: ✓ **Green** = match pura complete
   - 2 tap: ↩ **Lime green** = sirf 1 banda aaya, refund hua
