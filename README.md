@@ -12,7 +12,7 @@ Free Fire tournament host ke liye simple match tracker. Phone par app ki tarah c
   - 4 tap: wapas khali
 - Aaj ke pura / refund / cancel ki ginti
 - Is hafte (Monday se Sunday) ke pura matches aur kamai
-- "Pura match ₹" aur "Refund match ₹" ka rate khud set karo
+- Ek match ka rate khud set karo (green aur lime dono ka rate same). Cancel (red) ke paise nahi jodte
 - Data phone mein hi save hota hai (localStorage), internet ki zarurat nahi
 - Dark mode support
 

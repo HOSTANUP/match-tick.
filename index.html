@@ -40,12 +40,11 @@ button.s.x{background:var(--r);color:#fff;border-color:var(--r);font-weight:700}
  <div class="box"><b class="r" id="x">0</b><span>Cancel</span></div>
 </div>
 <div class="row">
- <div class="box"><b id="wc">0</b><span>Is hafte ke pura match</span></div>
+ <div class="box"><b id="wc">0</b><span>Is hafte ke match (green + lime)</span></div>
  <div class="box"><b id="we">₹0</b><span>Is hafte ki kamai</span></div>
 </div>
 <div class="set">
- <label>Pura match ₹<input type="number" id="pr" inputmode="decimal"></label>
- <label>Refund match ₹<input type="number" id="rr" inputmode="decimal"></label>
+ <label>Ek match ka rate ₹<input type="number" id="pr" inputmode="decimal" step="any"></label>
 </div>
 <div class="set">
  <label>Pehla match<input type="time" id="st"></label>
@@ -55,13 +54,13 @@ button.s.x{background:var(--r);color:#fff;border-color:var(--r);font-weight:700}
 <div class="bar"><button id="clr">Aaj ka reset</button></div>
 <script>
 const K='matchtick.v2';
-let db={},cfg={pr:0,rr:0,st:600,en:1320};
+let db={},cfg={pr:3.5,st:600,en:1320};
 try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(K+'c')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}};
 const $=id=>document.getElementById(id);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 $('d').value=iso(new Date());
-$('pr').value=cfg.pr||'';$('rr').value=cfg.rr||'';
+$('pr').value=cfg.pr||'';
 const label=m=>{const h=Math.floor(m/60),mm=m%60;return ((h+11)%12+1)+':'+String(mm).padStart(2,'0')+' '+(h<12?'AM':'PM')};
 const hlabel=h=>((h+11)%12+1)+' '+(h<12?'AM':'PM');
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
@@ -83,11 +82,11 @@ function render(){
  $('f').textContent=v.filter(x=>x==2).length;
  $('x').textContent=v.filter(x=>x==3).length;
  const dt=new Date($('d').value+'T00:00:00'),off=(dt.getDay()+6)%7;
- let wc=0,wf=0;
+ let wc=0;
  for(let k=0;k<7;k++){const t=new Date(dt);t.setDate(dt.getDate()-off+k);
-  const dd=db[iso(t)]||{};Object.values(dd).forEach(x=>{if(x==1)wc++;if(x==2)wf++})}
+  const dd=db[iso(t)]||{};Object.values(dd).forEach(x=>{if(x==1||x==2)wc++})}
  $('wc').textContent=wc;
- $('we').textContent='₹'+(wc*cfg.pr+wf*cfg.rr);
+ $('we').textContent='₹'+Math.round(wc*cfg.pr*100)/100;
 }
 $('list').addEventListener('click',e=>{
  const b=e.target.closest('button.s');if(!b)return;
@@ -104,7 +103,6 @@ $('d').addEventListener('change',render);
  render();
 }));
 $('pr').addEventListener('input',()=>{cfg.pr=+$('pr').value||0;save();render()});
-$('rr').addEventListener('input',()=>{cfg.rr=+$('rr').value||0;save();render()});
 $('clr').addEventListener('click',()=>{if(confirm('Aaj ke saare ticks hata dun?')){delete db[$('d').value];save();render()}});
 render();
 </script>
