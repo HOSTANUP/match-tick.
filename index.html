@@ -53,3 +53,46 @@ button.s.x{background:var(--r);color:#fff;border-color:var(--r);font-weight:700}
 const K='matchtick.v1';
 let db={},cfg={pr:0,rr:0};
 try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=JSON.parse(localStorage.getItem(K+'c')||'{"pr":0,"rr":0}')}catch(e){}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}};
+const $=id=>document.getElementById(id);
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+$('d').value=iso(new Date());
+$('pr').value=cfg.pr||'';$('rr').value=cfg.rr||'';
+const label=i=>{const m=10*60+i*15,h=Math.floor(m/60),mm=m%60;return ((h+11)%12+1)+':'+String(mm).padStart(2,'0')+' '+(h<12?'AM':'PM')};
+const hlabel=h=>((h+11)%12+1)+' '+(h<12?'AM':'PM');
+const cls={1:'c',2:'f',3:'x'};
+function render(){
+ const day=db[$('d').value]||{};let h='';
+ for(let hr=0;hr<12;hr++){
+  h+='<h3>'+hlabel(10+hr)+'</h3><div class="grid">';
+  for(let q=0;q<4;q++){const i=hr*4+q,s=day[i]||0;
+   h+='<button class="s '+(cls[s]||'')+'" data-i="'+i+'">'+(s==1?'✓ ':s==2?'↩ ':s==3?'✕ ':'')+label(i)+'</button>';}
+  h+='</div>';
+ }
+ $('list').innerHTML=h;
+ const v=Object.values(day);
+ $('c').textContent=v.filter(x=>x==1).length;
+ $('f').textContent=v.filter(x=>x==2).length;
+ $('x').textContent=v.filter(x=>x==3).length;
+ const dt=new Date($('d').value+'T00:00:00'),off=(dt.getDay()+6)%7;
+ let wc=0,wf=0;
+ for(let k=0;k<7;k++){const t=new Date(dt);t.setDate(dt.getDate()-off+k);
+  const dd=db[iso(t)]||{};Object.values(dd).forEach(x=>{if(x==1)wc++;if(x==2)wf++})}
+ $('wc').textContent=wc;
+ $('we').textContent='₹'+(wc*cfg.pr+wf*cfg.rr);
+}
+$('list').addEventListener('click',e=>{
+ const b=e.target.closest('button.s');if(!b)return;
+ const k=$('d').value,i=b.dataset.i;db[k]=db[k]||{};
+ const n=((db[k][i]||0)+1)%4;
+ if(n)db[k][i]=n;else delete db[k][i];
+ save();render();
+});
+$('d').addEventListener('change',render);
+$('pr').addEventListener('input',()=>{cfg.pr=+$('pr').value||0;save();render()});
+$('rr').addEventListener('input',()=>{cfg.rr=+$('rr').value||0;save();render()});
+$('clr').addEventListener('click',()=>{if(confirm('Aaj ke saare ticks hata dun?')){delete db[$('d').value];save();render()}});
+render();
+</script>
+</body>
+</html>
