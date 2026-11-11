@@ -55,9 +55,9 @@ textarea{width:100%;height:90px;font-size:12px;padding:10px;border:1px solid var
 </nav>
 <script>
 const K='matchtick.v2';
-let db={},cfg={pr:3.5,st:600,en:1320};
+let db={},cfg={pr:3.5,st:600,en:1320,nt:true,dl:15};
 try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(K+'c')||'{}'))}catch(e){}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}sc()};
 const $=id=>document.getElementById(id);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const pd=s=>new Date(s+'T00:00:00');
@@ -72,6 +72,41 @@ const money=n=>'₹'+Math.round(n*100)/100;
 const cnt=day=>{const v=Object.values(day||{});return{c:v.filter(x=>x==1).length,f:v.filter(x=>x==2).length,x:v.filter(x=>x==3).length}};
 const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(()=>{e.style.opacity=0},1800)};
 const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
+const LN=()=>{try{return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications}catch(e){return null}};
+const nid=(ds,m)=>Math.round(Date.UTC(+ds.slice(0,4),+ds.slice(5,7)-1,+ds.slice(8,10))/864e5)*100+m/15;
+let scT=0;
+function sc(){clearTimeout(scT);scT=setTimeout(sched,500)}
+async function sched(){
+ const ln=LN();if(!ln)return;
+ try{
+  const pend=await ln.getPending();
+  if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
+  if(!cfg.nt)return;
+  let p=await ln.checkPermissions();
+  if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted')return}
+  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
+  const list=[],now=Date.now(),t0=iso(new Date());
+  for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
+   for(let m=cfg.st;m<=cfg.en;m+=15){
+    if(day[m])continue;
+    const at=new Date(d.getTime()+(m+(cfg.dl||15))*60000);
+    if(at.getTime()<=now)continue;
+    list.push({id:nid(ds,m),title:'Tick baaki hai ⏰',body:label(m)+' wale match ka tick nahi kiya',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
+   }}
+  if(list.length)await ln.schedule({notifications:list});
+ }catch(e){}
+}
+async function testNote(){
+ const ln=LN();if(!ln){toast('Notification sirf APK app mein chalega');return}
+ try{
+  let p=await ln.checkPermissions();
+  if(p.display!=='granted')p=await ln.requestPermissions();
+  if(p.display!=='granted'){toast('Notification ki permission allow karo');return}
+  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
+  await ln.schedule({notifications:[{id:1,title:'Test ✓',body:'Notification theek chal raha hai',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true}}]});
+  toast('5 second mein notification aayega');
+ }catch(e){toast('Notification nahi chala')}
+}
 const cls={1:'c',2:'f',3:'x'};
 let hist=[],lastTxt='';let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
 
@@ -108,6 +143,9 @@ function sett(){
  $('app').innerHTML='<h2>Settings</h2><div class="card"><label>Ek match ka rate ₹</label><input type="number" id="pr" inputmode="decimal" step="any" value="'+cfg.pr+'">'
  +'<label>Pehla match</label><input type="time" id="st" value="'+hhmm(cfg.st)+'"><label>Aakhri match</label><input type="time" id="en" value="'+hhmm(cfg.en)+'">'
  +'<button class="btn" data-a="reset">Is din ke saare ticks hatao ('+dl(cur)+')</button></div>'
+ +'<div class="card"><b>Notification</b><label style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;font-size:15px;color:var(--tx)"><input type="checkbox" id="nt" style="width:22px;height:22px" '+(cfg.nt?'checked':'')+'>Tick bhulne par yaad dilao</label>'
+ +'<label>Slot ke kitne minute baad yaad dilana hai</label><input type="number" id="dl" inputmode="numeric" value="'+(cfg.dl||15)+'">'
+ +'<div style="font-size:12px;color:var(--mut);margin-top:8px">Jis match ka tick nahi lagega, uske time ke baad notification aayega. Tick lagate hi wo notification hat jata hai. Notification na aaye to phone ki Settings → Battery → Match Tick mein "Background activity allow" kar do.</div><button class="btn2" data-a="test">Test notification bhejo</button></div>'
  +'<div class="card"><b>Backup</b><div style="font-size:13px;color:var(--mut);margin:4px 0 8px">Backup banao, text kahin save kar lo (WhatsApp / Notes). Phone badle to wahi text yahan paste karke Restore karo.</div><textarea id="bk" placeholder="Backup yahan aayega, ya restore ke liye yahan paste karo"></textarea><button class="btn2" data-a="bkup">Backup banao + copy</button><button class="btn2" style="background:#475569" data-a="rest">Restore karo</button></div>';
 }
 function render(){
@@ -129,6 +167,7 @@ document.addEventListener('click',e=>{
  else if(a==='reset'){if(confirm('Is din ke saare ticks hata dun?')){delete db[cur];save()}}
  else if(a==='undo'){const u=hist.pop();if(!u){toast('Undo ke liye kuch nahi');return}db[u.d]=db[u.d]||{};if(u.p)db[u.d][u.m]=u.p;else delete db[u.d][u.m];save();cur=u.d;scrolled=true}
  else if(a==='share'){if(typeof navigator!=='undefined'&&navigator.share){navigator.share({text:lastTxt}).catch(()=>copy(lastTxt))}else copy(lastTxt);return}
+ else if(a==='test'){testNote();return}
  else if(a==='bkup'){const t=JSON.stringify({db:db,cfg:cfg});$('bk').value=t;copy(t);return}
  else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
  if(a==='v-hisab')wk=cur;
@@ -136,12 +175,16 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
  if(e.target.id==='pr'){cfg.pr=+e.target.value||0;save()}
+ if(e.target.id==='nt'){cfg.nt=e.target.checked;save()}
+ if(e.target.id==='dl'){cfg.dl=Math.max(1,Math.min(120,+e.target.value||15));save()}
  if(e.target.id==='st'||e.target.id==='en'){
   const a=tom($('st').value),b=tom($('en').value);
   if(!isNaN(a)&&!isNaN(b)&&b>=a){cfg.st=a;cfg.en=b;save()}else{$('st').value=hhmm(cfg.st);$('en').value=hhmm(cfg.en)}
  }
 });
 render();
+sc();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sc()});
 </script>
 </body>
 </html>
