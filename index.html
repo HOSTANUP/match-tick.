@@ -47,28 +47,36 @@ button.s.x{background:var(--r);color:#fff;border-color:var(--r);font-weight:700}
  <label>Pura match ₹<input type="number" id="pr" inputmode="decimal"></label>
  <label>Refund match ₹<input type="number" id="rr" inputmode="decimal"></label>
 </div>
+<div class="set">
+ <label>Pehla match<input type="time" id="st"></label>
+ <label>Aakhri match<input type="time" id="en"></label>
+</div>
 <div id="list"></div>
 <div class="bar"><button id="clr">Aaj ka reset</button></div>
 <script>
-const K='matchtick.v1';
-let db={},cfg={pr:0,rr:0};
-try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=JSON.parse(localStorage.getItem(K+'c')||'{"pr":0,"rr":0}')}catch(e){}
+const K='matchtick.v2';
+let db={},cfg={pr:0,rr:0,st:600,en:1320};
+try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(K+'c')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}};
 const $=id=>document.getElementById(id);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 $('d').value=iso(new Date());
 $('pr').value=cfg.pr||'';$('rr').value=cfg.rr||'';
-const label=i=>{const m=10*60+i*15,h=Math.floor(m/60),mm=m%60;return ((h+11)%12+1)+':'+String(mm).padStart(2,'0')+' '+(h<12?'AM':'PM')};
+const label=m=>{const h=Math.floor(m/60),mm=m%60;return ((h+11)%12+1)+':'+String(mm).padStart(2,'0')+' '+(h<12?'AM':'PM')};
 const hlabel=h=>((h+11)%12+1)+' '+(h<12?'AM':'PM');
+const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const tom=v=>{const p=(v||'').split(':');return p.length==2?(+p[0])*60+(+p[1]):NaN};
+$('st').value=hhmm(cfg.st);$('en').value=hhmm(cfg.en);
 const cls={1:'c',2:'f',3:'x'};
 function render(){
  const day=db[$('d').value]||{};let h='';
- for(let hr=0;hr<12;hr++){
-  h+='<h3>'+hlabel(10+hr)+'</h3><div class="grid">';
-  for(let q=0;q<4;q++){const i=hr*4+q,s=day[i]||0;
-   h+='<button class="s '+(cls[s]||'')+'" data-i="'+i+'">'+(s==1?'✓ ':s==2?'↩ ':s==3?'✕ ':'')+label(i)+'</button>';}
-  h+='</div>';
+ let ch=-1;
+ for(let m=cfg.st;m<=cfg.en;m+=15){
+  const hr=Math.floor(m/60),st=day[m]||0;
+  if(hr!=ch){if(ch>=0)h+='</div>';h+='<h3>'+hlabel(hr)+'</h3><div class="grid">';ch=hr}
+  h+='<button class="s '+(cls[st]||'')+'" data-i="'+m+'">'+(st==1?'✓ ':st==2?'↩ ':st==3?'✕ ':'')+label(m)+'</button>';
  }
+ if(ch>=0)h+='</div>';
  $('list').innerHTML=h;
  const v=Object.values(day);
  $('c').textContent=v.filter(x=>x==1).length;
@@ -89,6 +97,12 @@ $('list').addEventListener('click',e=>{
  save();render();
 });
 $('d').addEventListener('change',render);
+['st','en'].forEach(id=>$(id).addEventListener('change',()=>{
+ const a=tom($('st').value),b=tom($('en').value);
+ if(!isNaN(a)&&!isNaN(b)&&b>=a){cfg.st=a;cfg.en=b;save()}
+ else{$('st').value=hhmm(cfg.st);$('en').value=hhmm(cfg.en)}
+ render();
+}));
 $('pr').addEventListener('input',()=>{cfg.pr=+$('pr').value||0;save();render()});
 $('rr').addEventListener('input',()=>{cfg.rr=+$('rr').value||0;save();render()});
 $('clr').addEventListener('click',()=>{if(confirm('Aaj ke saare ticks hata dun?')){delete db[$('d').value];save();render()}});
