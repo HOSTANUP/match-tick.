@@ -90,13 +90,14 @@ async function sched(){
   for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
    for(let m=cfg.st;m<=cfg.en;m+=15){
     if(day[m])continue;
-    if(cfg.nr){const at=new Date(d.getTime()+(m-(cfg.rb||0))*60000);
-     if(at.getTime()>now)list.push({id:nid(ds,m)+100000000,title:'Match ka time 🎮',body:label(m)+' ka match host karne ka time ho gaya',channelId:'matchtime',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}})}
     if(!cfg.nt)continue;
     const at=new Date(d.getTime()+(m+(cfg.dl||15))*60000);
     if(at.getTime()<=now)continue;
     list.push({id:nid(ds,m),title:'Tick baaki hai ⏰',body:label(m)+' wale match ka tick nahi kiya',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
    }}
+  if(cfg.nr){for(let m=cfg.st;m<=cfg.en;m+=15){
+   let mm=m-(cfg.rb||0);if(mm<0)mm+=1440;
+   list.push({id:200000000+m/15,title:'Match ka time 🎮',body:label(m)+' ka match host karne ka time ho gaya',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{on:{hour:Math.floor(mm/60),minute:mm%60},repeats:true,allowWhileIdle:true}})}}
   if(list.length)await ln.schedule({notifications:list});
  }catch(e){}
 }
