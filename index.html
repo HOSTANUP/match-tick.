@@ -2,189 +2,106 @@
 <html lang="hi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f6e4f">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Match Tick</title>
 <style>
-:root{--bg:#eef1f6;--card:#fff;--tx:#14213d;--mut:#64708a;--bd:#d9dfea;--g:#0f6e4f;--l:#a3e635;--r:#dc2626}
-@media(prefers-color-scheme:dark){:root{--bg:#10141c;--card:#1a202c;--tx:#f1f5f9;--mut:#94a3b8;--bd:#2b3445}}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;padding:max(12px,env(safe-area-inset-top)) 14px 150px}
-h2{margin:6px 2px 12px;font-size:20px}
-.dbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.dbar button,.wk button{width:46px;height:46px;border-radius:14px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:22px}
-.dbar div{flex:1;text-align:center;font-weight:700;font-size:17px;padding:12px;background:var(--card);border:1px solid var(--bd);border-radius:14px}
-h3{margin:16px 2px 6px;font-size:13px;color:var(--mut)}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.s{padding:16px 0;font-size:14px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
-.s.p{opacity:.55}
-.s.n{outline:3px solid #f59e0b;outline-offset:1px}
-.s.c{background:var(--g);color:#fff;border-color:var(--g);font-weight:700;opacity:1}
-.s.f{background:var(--l);color:#1a2e05;border-color:#84cc16;font-weight:700;opacity:1}
-.s.x{background:var(--r);color:#fff;border-color:var(--r);font-weight:700;opacity:1}
-#sum{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));display:flex;gap:8px;padding:8px 14px;background:var(--bg);border-top:1px solid var(--bd)}
-#sum div{flex:1;text-align:center;padding:8px;border-radius:12px;color:#fff;font-weight:700;font-size:15px}
-nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;padding:12px 0 10px;border:0;background:none;color:var(--mut);font-size:13px}
-nav button b{display:block;font-size:20px;font-weight:400}
-nav button.on{color:var(--g);font-weight:700}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:10px}
-.big{font-size:34px;font-weight:800}
-.row{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--bd);font-size:14px}
-.row:last-child{border:0}
-.row span{font-size:13px}
-.wk{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.wk div{flex:1;text-align:center;font-weight:700}
-label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
-input{width:100%;font-size:17px;padding:12px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx)}
-.prog{height:8px;border-radius:6px;background:var(--bd);margin-top:8px;overflow:hidden}.prog i{display:block;height:100%;background:var(--g)}
-#sum .undo{width:52px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:20px}
-.btn2{width:100%;padding:13px;margin-top:6px;border-radius:12px;border:0;background:var(--g);color:#fff;font-size:15px;font-weight:700}
-textarea{width:100%;height:90px;font-size:12px;padding:10px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx)}
-#toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
-.btn{width:100%;padding:13px;margin-top:14px;border-radius:12px;border:1px solid var(--r);background:none;color:var(--r);font-size:15px}
+:root{--bg:#eef1f5;--card:#fff;--ink:#14213d;--mut:#5b6678;--line:#c7cfdb;--ok:#0b6e4f}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:520px;padding:14px;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:20px;margin:2px 0 12px}
+input[type=date]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px}
+.stats{display:grid;grid-template-columns:3fr 2fr;gap:8px;margin:12px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:44px;line-height:1;color:var(--ok)}
+.stat.small b{font-size:30px;color:var(--ink)}
+.stat span{font-size:13px;color:var(--mut)}
+.hour{margin-bottom:12px}
+.hour h2{font-size:14px;margin:0 0 4px;color:var(--mut);font-weight:600}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+button.m{padding:14px 0;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px}
+button.m.on{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700}
+button.m.on::before{content:"✓ "}
+button.m:focus-visible,input:focus-visible,.reset:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+.reset{width:100%;padding:12px;margin:6px 0 24px;border-radius:10px;border:1px solid #b42318;background:none;color:#b42318;font-size:14px}
 </style>
 </head>
 <body>
-<div id="app"></div>
-<div id="sum"></div><div id="toast"></div>
-<nav>
- <button data-a="v-tick" id="t-tick"><b>✓</b>Tick</button>
- <button data-a="v-hisab" id="t-hisab"><b>₹</b>Hisaab</button>
- <button data-a="v-set" id="t-set"><b>⚙</b>Settings</button>
-</nav>
-<script>
-const K='matchtick.v2';
-let db={},cfg={pr:3.5,st:600,en:1320,nt:true,dl:15};
-try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(K+'c')||'{}'))}catch(e){}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}sc()};
-const $=id=>document.getElementById(id);
-const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const pd=s=>new Date(s+'T00:00:00');
-const addD=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return iso(d)};
-const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const dl=s=>{const d=pd(s);return (s===iso(new Date())?'Aaj, ':DN[d.getDay()]+', ')+d.getDate()+' '+MN[d.getMonth()]};
-const label=m=>{const h=Math.floor(m/60);return ((h+11)%12+1)+':'+String(m%60).padStart(2,'0')+' '+(h<12?'AM':'PM')};
-const hlabel=h=>((h+11)%12+1)+' '+(h<12?'AM':'PM');
-const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-const tom=v=>{const p=(v||'').split(':');return p.length==2?(+p[0])*60+(+p[1]):NaN};
-const money=n=>'₹'+Math.round(n*100)/100;
-const cnt=day=>{const v=Object.values(day||{});return{c:v.filter(x=>x==1).length,f:v.filter(x=>x==2).length,x:v.filter(x=>x==3).length}};
-const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(()=>{e.style.opacity=0},1800)};
-const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
-const LN=()=>{try{return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications}catch(e){return null}};
-const nid=(ds,m)=>Math.round(Date.UTC(+ds.slice(0,4),+ds.slice(5,7)-1,+ds.slice(8,10))/864e5)*100+m/15;
-let scT=0;
-function sc(){clearTimeout(scT);scT=setTimeout(sched,500)}
-async function sched(){
- const ln=LN();if(!ln)return;
- try{
-  const pend=await ln.getPending();
-  if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
-  if(!cfg.nt)return;
-  let p=await ln.checkPermissions();
-  if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted')return}
-  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
-  const list=[],now=Date.now(),t0=iso(new Date());
-  for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-   for(let m=cfg.st;m<=cfg.en;m+=15){
-    if(day[m])continue;
-    const at=new Date(d.getTime()+(m+(cfg.dl||15))*60000);
-    if(at.getTime()<=now)continue;
-    list.push({id:nid(ds,m),title:'Tick baaki hai ⏰',body:label(m)+' wale match ka tick nahi kiya',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
-   }}
-  if(list.length)await ln.schedule({notifications:list});
- }catch(e){}
-}
-async function testNote(){
- const ln=LN();if(!ln){toast('Notification sirf APK app mein chalega');return}
- try{
-  let p=await ln.checkPermissions();
-  if(p.display!=='granted')p=await ln.requestPermissions();
-  if(p.display!=='granted'){toast('Notification ki permission allow karo');return}
-  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
-  await ln.schedule({notifications:[{id:1,title:'Test ✓',body:'Notification theek chal raha hai',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true}}]});
-  toast('5 second mein notification aayega');
- }catch(e){toast('Notification nahi chala')}
-}
-const cls={1:'c',2:'f',3:'x'};
-let hist=[],lastTxt='';let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
+<h1>Match Tick</h1>
+<input type="date" id="date" aria-label="Tarikh">
+<div class="stats">
+  <div class="stat"><b id="day">0</b><span>Is din ke match</span></div>
+  <div class="stat small"><b id="week">0</b><span>Is hafte ke</span></div>
+</div>
+<div id="grid"></div>
+<button class="reset" id="reset">Is din ke tick hatao</button>
 
-function summary(){
- const n=cnt(db[cur]);
- $('sum').style.display=view==='tick'?'flex':'none';
- $('sum').innerHTML='<div style="background:var(--g)">✓ '+n.c+' Pure</div><div style="background:#65a30d">↩ '+n.f+' Refund</div><div style="background:var(--r)">✕ '+n.x+' Cancel</div><button class="undo" data-a="undo">↶</button>';
-}
-function tick(){
- const day=db[cur]||{},now=new Date(),isT=cur===iso(now),nm=now.getHours()*60+now.getMinutes();
- let h='<div class="dbar"><button data-a="pd">‹</button><div data-a="today">'+dl(cur)+'</div><button data-a="nd">›</button></div>',ch=-1;
- const n0=cnt(day),tot=Math.floor((cfg.en-cfg.st)/15)+1,dn=n0.c+n0.f+n0.x;
- h+='<div class="card" style="padding:10px 14px"><div style="display:flex;justify-content:space-between;font-size:14px"><span>'+dn+' / '+tot+' slot bhare</span><b style="color:var(--g)">Kamai: '+money((n0.c+n0.f)*cfg.pr)+'</b></div><div class="prog"><i style="width:'+Math.round(dn/tot*100)+'%"></i></div></div>';
- for(let m=cfg.st;m<=cfg.en;m+=15){
-  const hr=Math.floor(m/60),st=day[m]||0;
-  if(hr!=ch){if(ch>=0)h+='</div>';h+='<h3>'+hlabel(hr)+'</h3><div class="grid">';ch=hr}
-  const k=(cls[st]||'')+(isT&&m+15<=nm?' p':'')+(isT&&m<=nm&&nm<m+15?' n':'');
-  h+='<button class="s '+k+'" data-i="'+m+'" '+(k.indexOf(' n')>-1||k.slice(-1)=='n'?'id="now"':'')+'>'+(st==1?'✓ ':st==2?'↩ ':st==3?'✕ ':'')+label(m)+'</button>';
- }
- if(ch>=0)h+='</div>';
- $('app').innerHTML=h;
- if(!scrolled){scrolled=true;const e=$('now');if(e&&e.scrollIntoView)e.scrollIntoView({block:'center'})}
-}
-function hisab(){
- const d=pd(wk),off=(d.getDay()+6)%7,mon=addD(wk,-off),sun=addD(mon,6);
- let tc=0,rows='',tx='';
- for(let i=0;i<7;i++){const s=addD(mon,i),n=cnt(db[s]),t=n.c+n.f;tc+=t;tx+=dl(s)+': '+t+' match\n';
-  rows+='<div class="row"><div>'+dl(s)+'<br><span style="color:var(--mut)">✓'+n.c+'  ↩'+n.f+'  ✕'+n.x+'</span></div><b>'+t+' match · '+money(t*cfg.pr)+'</b></div>'}
- lastTxt='Match Tick '+pd(mon).getDate()+' '+MN[pd(mon).getMonth()]+' – '+pd(sun).getDate()+' '+MN[pd(sun).getMonth()]+'\n'+tx+'Total: '+tc+' match = '+money(tc*cfg.pr);
- $('app').innerHTML='<h2>Hisaab</h2><div class="wk"><button data-a="pw">‹</button><div>'+pd(mon).getDate()+' '+MN[pd(mon).getMonth()]+' – '+pd(sun).getDate()+' '+MN[pd(sun).getMonth()]+'</div><button data-a="nw">›</button></div>'
- +'<div class="card"><div style="color:var(--mut);font-size:13px">Is hafte ki kamai</div><div class="big" style="color:var(--g)">'+money(tc*cfg.pr)+'</div><div style="color:var(--mut);font-size:13px">'+tc+' match (green + lime) × '+money(cfg.pr)+'</div></div><div class="card">'+rows+'</div><button class="btn2" data-a="share">Hafte ka summary share / copy</button>';
-}
-function sett(){
- $('app').innerHTML='<h2>Settings</h2><div class="card"><label>Ek match ka rate ₹</label><input type="number" id="pr" inputmode="decimal" step="any" value="'+cfg.pr+'">'
- +'<label>Pehla match</label><input type="time" id="st" value="'+hhmm(cfg.st)+'"><label>Aakhri match</label><input type="time" id="en" value="'+hhmm(cfg.en)+'">'
- +'<button class="btn" data-a="reset">Is din ke saare ticks hatao ('+dl(cur)+')</button></div>'
- +'<div class="card"><b>Notification</b><label style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;font-size:15px;color:var(--tx)"><input type="checkbox" id="nt" style="width:22px;height:22px" '+(cfg.nt?'checked':'')+'>Tick bhulne par yaad dilao</label>'
- +'<label>Slot ke kitne minute baad yaad dilana hai</label><input type="number" id="dl" inputmode="numeric" value="'+(cfg.dl||15)+'">'
- +'<div style="font-size:12px;color:var(--mut);margin-top:8px">Jis match ka tick nahi lagega, uske time ke baad notification aayega. Tick lagate hi wo notification hat jata hai. Notification na aaye to phone ki Settings → Battery → Match Tick mein "Background activity allow" kar do.</div><button class="btn2" data-a="test">Test notification bhejo</button></div>'
- +'<div class="card"><b>Backup</b><div style="font-size:13px;color:var(--mut);margin:4px 0 8px">Backup banao, text kahin save kar lo (WhatsApp / Notes). Phone badle to wahi text yahan paste karke Restore karo.</div><textarea id="bk" placeholder="Backup yahan aayega, ya restore ke liye yahan paste karo"></textarea><button class="btn2" data-a="bkup">Backup banao + copy</button><button class="btn2" style="background:#475569" data-a="rest">Restore karo</button></div>';
+<script>
+const START=10, END=22; // 10 AM se 10 PM (10:00 PM ka match bhi)
+let data={};
+try{data=JSON.parse(localStorage.getItem('ticks')||'{}')}catch(e){}
+const $=id=>document.getElementById(id);
+const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const ds=()=>$('date').value||fmt(new Date());
+$('date').value=fmt(new Date());
+function save(){try{localStorage.setItem('ticks',JSON.stringify(data))}catch(e){}}
+function label(h,m){return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h>=12?'PM':'AM')}
+function weekTotal(s){
+  const d=new Date(s+'T00:00:00'), back=(d.getDay()+6)%7; // hafta Monday se
+  let t=0;
+  for(let i=0;i<7;i++){
+    const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()-back+i);
+    t+=(data[fmt(x)]||[]).length;
+  }
+  return t;
 }
 function render(){
- ['tick','hisab','set'].forEach(v=>$('t-'+v).className=v===view?'on':'');
- summary();
- if(view==='tick')tick();else if(view==='hisab')hisab();else sett();
+  const s=ds(), on=data[s]||[];
+  let html='', i=0;
+  for(let h=START;h<=END;h++){
+    html+='<div class="hour"><h2>'+label(h,0).replace(':00','')+'</h2><div class="row">';
+    for(let m=0;m<(h===END?1:60);m+=15){
+      html+='<button class="m'+(on.includes(i)?' on':'')+'" data-i="'+i+'">'+label(h,m)+'</button>';
+      i++;
+    }
+    html+='</div></div>';
+  }
+  $('grid').innerHTML=html;
+  $('day').textContent=on.length;
+  $('week').textContent=weekTotal(s);
 }
-document.addEventListener('click',e=>{
- const b=e.target.closest('[data-a],[data-i]');if(!b)return;
- if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(12);const n=((db[cur][m]||0)+1)%4;
-  if(n)db[cur][m]=n;else delete db[cur][m];save();scrolled=true;tick();summary();return}
- const a=b.dataset.a;
- if(a.slice(0,2)==='v-'){view=a.slice(2);scrolled=view!=='tick'?false:scrolled}
- else if(a==='pd'){cur=addD(cur,-1);scrolled=true}
- else if(a==='nd'){cur=addD(cur,1);scrolled=true}
- else if(a==='today'){cur=iso(new Date());scrolled=false}
- else if(a==='pw')wk=addD(wk,-7);
- else if(a==='nw')wk=addD(wk,7);
- else if(a==='reset'){if(confirm('Is din ke saare ticks hata dun?')){delete db[cur];save()}}
- else if(a==='undo'){const u=hist.pop();if(!u){toast('Undo ke liye kuch nahi');return}db[u.d]=db[u.d]||{};if(u.p)db[u.d][u.m]=u.p;else delete db[u.d][u.m];save();cur=u.d;scrolled=true}
- else if(a==='share'){if(typeof navigator!=='undefined'&&navigator.share){navigator.share({text:lastTxt}).catch(()=>copy(lastTxt))}else copy(lastTxt);return}
- else if(a==='test'){testNote();return}
- else if(a==='bkup'){const t=JSON.stringify({db:db,cfg:cfg});$('bk').value=t;copy(t);return}
- else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
- if(a==='v-hisab')wk=cur;
- render();
-});
-document.addEventListener('change',e=>{
- if(e.target.id==='pr'){cfg.pr=+e.target.value||0;save()}
- if(e.target.id==='nt'){cfg.nt=e.target.checked;save()}
- if(e.target.id==='dl'){cfg.dl=Math.max(1,Math.min(120,+e.target.value||15));save()}
- if(e.target.id==='st'||e.target.id==='en'){
-  const a=tom($('st').value),b=tom($('en').value);
-  if(!isNaN(a)&&!isNaN(b)&&b>=a){cfg.st=a;cfg.en=b;save()}else{$('st').value=hhmm(cfg.st);$('en').value=hhmm(cfg.en)}
- }
-});
+$('grid').onclick=e=>{
+  const b=e.target.closest('button.m'); if(!b) return;
+  const s=ds(), i=+b.dataset.i;
+  let a=data[s]||[];
+  a=a.includes(i)?a.filter(x=>x!==i):a.concat(i);
+  data[s]=a; save();
+  if(navigator.vibrate) navigator.vibrate(20);
+  render();
+};
+$('date').onchange=render;
+$('reset').onclick=()=>{
+  if(confirm('Is din ke saare tick hata dein?')){delete data[ds()];save();render();}
+};
 render();
-sc();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)sc()});
+
+// Reminder: har match ke time pe notification (sirf APK app mein chalta hai)
+async function setupReminders(){
+  try{
+    const LN=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.LocalNotifications;
+    if(!LN) return;
+    const p=await LN.requestPermissions();
+    if(p.display!=='granted') return;
+    await LN.createChannel({id:'match',name:'Match reminder',importance:5,visibility:1,vibration:true});
+    const list=[]; let id=1;
+    for(let h=START;h<=END;h++){
+      for(let m=0;m<(h===END?1:60);m+=15){
+        list.push({id:id++,title:'Match time ⏰',body:label(h,m)+' ka match host karo',channelId:'match',schedule:{on:{hour:h,minute:m},allowWhileIdle:true}});
+      }
+    }
+    await LN.schedule({notifications:list});
+  }catch(e){}
+}
+setupReminders();
 </script>
 </body>
 </html>
