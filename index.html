@@ -74,33 +74,46 @@ const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(
 const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
 const LN=()=>{try{return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications}catch(e){return null}};
 const nid=(ds,m)=>Math.round(Date.UTC(+ds.slice(0,4),+ds.slice(5,7)-1,+ds.slice(8,10))/864e5)*100+m/15;
-let scT=0;
+let scT=0,busy=false,again=false,schedInfo='Abhi check ho raha hai...';
 function sc(){clearTimeout(scT);scT=setTimeout(sched,500)}
+function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t}
 async function sched(){
- const ln=LN();if(!ln)return;
- try{
-  const pend=await ln.getPending();
-  if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
-  if(!cfg.nt&&!cfg.nr)return;
-  let p=await ln.checkPermissions();
-  if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted')return}
-  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
-  try{await ln.createChannel({id:'matchtime',name:'Match time',importance:5,vibration:true})}catch(e){}
-  const list=[],now=Date.now(),t0=iso(new Date());
-  for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-   for(let m=cfg.st;m<=cfg.en;m+=15){
-    if(day[m])continue;
-    if(!cfg.nt)continue;
-    const at=new Date(d.getTime()+(m+(cfg.dl||15))*60000);
-    if(at.getTime()<=now)continue;
-    list.push({id:nid(ds,m),title:'Tick baaki hai ⏰',body:label(m)+' wale match ka tick nahi kiya',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
-   }}
-  if(cfg.nr){for(let m=cfg.st;m<=cfg.en;m+=15){
-   let mm=m-(cfg.rb||0);if(mm<0)mm+=1440;
-   list.push({id:200000000+m/15,title:'Match ka time 🎮',body:label(m)+' ka match host karne ka time ho gaya',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{on:{hour:Math.floor(mm/60),minute:mm%60},repeats:true,allowWhileIdle:true}})}}
-  if(list.length)await ln.schedule({notifications:list});
- }catch(e){}
+ if(busy){again=true;return}
+ busy=true;
+ try{await doSched()}catch(e){setInfo('Reminder lagne mein dikkat: '+(e&&e.message?e.message:e))}
+ busy=false;if(again){again=false;sc()}
 }
+async function doSched(){
+ const ln=LN();if(!ln){setInfo('Reminder sirf APK app mein chalte hain');return}
+ let p=await ln.checkPermissions();
+ if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted'){setInfo('Notification ki permission allow nahi hai');return}}
+ try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
+ const list=[],now=Date.now(),t0=iso(new Date()),dl=cfg.dl||15;
+ const mk=(id,title,body,at)=>({id:id,title:title,body:body,channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
+ if(cfg.nt||cfg.nr){
+  for(let i=0;i<5;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
+   for(let m=cfg.st;m<=cfg.en;m+=15){
+    const at=new Date(d.getTime()+m*60000);
+    if(at.getTime()>now){
+     const parts=[];let title='Tick baaki hai ⏰';
+     if(cfg.nr&&!day[m]){parts.push(label(m)+' ka match host karne ka time ho gaya');title='Match ka time 🎮'}
+     if(cfg.nt&&m-15>=cfg.st&&!day[m-15])parts.push(label(m-15)+' ka tick baaki hai');
+     if(parts.length)list.push(mk(nid(ds,m),title,parts.join('\n'),at));
+    }
+   }
+   if(cfg.nt&&!day[cfg.en]){const at=new Date(d.getTime()+(cfg.en+dl)*60000);
+    if(at.getTime()>now)list.push(mk(nid(ds,cfg.en)+50000000,'Tick baaki hai ⏰',label(cfg.en)+' ka tick baaki hai',at))}
+  }
+ }
+ const pend=await ln.getPending();
+ if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
+ for(let i=0;i<list.length;i+=40)await ln.schedule({notifications:list.slice(i,i+40)});
+ const chk=await ln.getPending(),n=chk.notifications?chk.notifications.length:0;
+ list.sort((x,y)=>x.schedule.at-y.schedule.at);
+ const nx=list[0]?new Date(list[0].schedule.at):null;
+ setInfo(n+' reminder lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
+}
+const dl2=d=>d.getDate()+' '+MN[d.getMonth()];
 async function testNote(){
  const ln=LN();if(!ln){toast('Notification sirf APK app mein chalega');return}
  try{
@@ -149,11 +162,10 @@ function sett(){
  +'<label>Pehla match</label><input type="time" id="st" value="'+hhmm(cfg.st)+'"><label>Aakhri match</label><input type="time" id="en" value="'+hhmm(cfg.en)+'">'
  +'<button class="btn" data-a="reset">Is din ke saare ticks hatao ('+dl(cur)+')</button></div>'
  +'<div class="card"><b>Match ka reminder</b><label style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;font-size:15px;color:var(--tx)"><input type="checkbox" id="nr" style="width:22px;height:22px" '+(cfg.nr?'checked':'')+'>Match ke time par yaad dilao</label>'
- +'<label>Match se kitne minute pehle (0 = theek time par)</label><input type="number" id="rb" inputmode="numeric" value="'+(cfg.rb||0)+'">'
  +'<div style="font-size:12px;color:var(--mut);margin-top:8px">Har slot ke time par notification aayega, jaise 1:00 PM par "1:00 PM ka match host karne ka time ho gaya".</div></div>'
  +'<div class="card"><b>Tick ka reminder</b><label style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;font-size:15px;color:var(--tx)"><input type="checkbox" id="nt" style="width:22px;height:22px" '+(cfg.nt?'checked':'')+'>Tick bhulne par yaad dilao</label>'
  +'<label>Slot ke kitne minute baad yaad dilana hai</label><input type="number" id="dl" inputmode="numeric" value="'+(cfg.dl||15)+'">'
- +'<div style="font-size:12px;color:var(--mut);margin-top:8px">Jis match ka tick nahi lagega, uske time ke baad notification aayega. Tick lagate hi wo notification hat jata hai. Notification na aaye to phone ki Settings → Battery → Match Tick mein "Background activity allow" kar do.</div><button class="btn2" data-a="test">Test notification bhejo</button></div>'
+ +'<div style="font-size:12px;color:var(--mut);margin-top:8px">Jis match ka tick nahi lagega, uske time ke baad notification aayega. Tick lagate hi wo notification hat jata hai. Notification na aaye to phone ki Settings → Battery → Match Tick mein "Background activity allow" kar do.</div><div id="si" style="font-size:13px;margin-top:10px;font-weight:600">'+schedInfo+'</div><button class="btn2" data-a="test">Test notification bhejo</button></div>'
  +'<div class="card"><b>Backup</b><div style="font-size:13px;color:var(--mut);margin:4px 0 8px">Backup banao, text kahin save kar lo (WhatsApp / Notes). Phone badle to wahi text yahan paste karke Restore karo.</div><textarea id="bk" placeholder="Backup yahan aayega, ya restore ke liye yahan paste karo"></textarea><button class="btn2" data-a="bkup">Backup banao + copy</button><button class="btn2" style="background:#475569" data-a="rest">Restore karo</button></div>';
 }
 function render(){
