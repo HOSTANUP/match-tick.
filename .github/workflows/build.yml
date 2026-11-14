@@ -32,58 +32,90 @@ jobs:
           sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>\n    <application#' android/app/src/main/AndroidManifest.xml
           npx cap sync android
 
-      - name: Icons and splash
+      - name: Keep-alive service
         run: |
-          pip install pillow
-          python3 - <<'PY'
-          import glob
-          from PIL import Image, ImageDraw
-          G=(15,110,79,255)
-          W=(255,255,255,255)
-          res='android/app/src/main/res'
-          def check(img,pad):
-              d=ImageDraw.Draw(img)
-              s=img.size[0]
-              f=lambda v:s*(pad+(1-2*pad)*v)
-              p=[(f(.27),f(.53)),(f(.43),f(.69)),(f(.75),f(.33))]
-              w=int(s*(1-2*pad)*0.12)
-              d.line(p,fill=W,width=w,joint='curve')
-              for x,y in (p[0],p[2]):
-                  d.ellipse((x-w/2,y-w/2,x+w/2,y+w/2),fill=W)
-          for fl in glob.glob(res+'/mipmap-*/ic_launcher*.png'):
-              n=Image.open(fl).size[0]
-              if 'foreground' in fl:
-                  im=Image.new('RGBA',(n,n),(0,0,0,0)); check(im,0.2)
-              else:
-                  im=Image.new('RGBA',(n,n),(0,0,0,0)); d=ImageDraw.Draw(im)
-                  if 'round' in fl: d.ellipse((0,0,n-1,n-1),fill=G)
-                  else: d.rounded_rectangle((0,0,n-1,n-1),radius=n//5,fill=G)
-                  check(im,0.15)
-              im.save(fl)
-          import os
-          os.makedirs(res+'/drawable',exist_ok=True)
-          st=Image.new('RGBA',(96,96),(0,0,0,0)); check(st,0.12); st.save(res+'/drawable/ic_stat_tick.png')
-          for fl in glob.glob(res+'/values/ic_launcher_background.xml'):
-              t=open(fl).read().replace('#FFFFFF','#0F6E4F'); open(fl,'w').write(t)
-          for fl in glob.glob(res+'/drawable*/splash.png'):
-              w,h=Image.open(fl).size
-              im=Image.new('RGBA',(w,h),G)
-              t=int(min(w,h)*0.3)
-              tile=Image.new('RGBA',(t,t),(0,0,0,0)); check(tile,0.05)
-              im.paste(tile,((w-t)//2,(h-t)//2),tile)
-              im.save(fl)
-          PY
-
-      - name: Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk ../MatchTick.apk
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Match Tick v${{ github.run_number }}
-          files: MatchTick.apk
+          D=android/app/src/main/java/com/hostanup/matchtick
+          mkdir -p $D
+          cat > $D/KeepAliveService.java <<'JAVA'
+          package com.hostanup.matchtick;
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.Intent;
+          import android.content.pm.ServiceInfo;
+          import android.os.Build;
+          import android.os.IBinder;
+          import androidx.core.app.NotificationCompat;
+          public class KeepAliveService extends Service {
+            @Override public IBinder onBind(Intent i) { return null; }
+            @Override public int onStartCommand(Intent intent, int flags, int startId) {
+              NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+              if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new NotificationChannel("keep", "Match Tick chalu hai", NotificationManager.IMPORTANCE_MIN));
+              }
+              PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+              int icon = getResources().getIdentifier("ic_stat_tick", "drawable", getPackageName());
+              if (icon == 0) icon = android.R.drawable.ic_dialog_info;
+              Notification n = new NotificationCompat.Builder(this, "keep")
+                .setContentTitle("Match Tick")
+                .setContentText("Reminder chalu hain")
+                .setSmallIcon(icon)
+                .setContentIntent(pi)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .build();
+              if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+              } else {
+                startForeground(1, n);
+              }
+              return START_STICKY;
+            }
+          }
+          JAVA
+          cat > $D/BootReceiver.java <<'JAVA'
+          package com.hostanup.matchtick;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Build;
+          public class BootReceiver extends BroadcastReceiver {
+            @Override public void onReceive(Context c, Intent i) {
+              try {
+                Intent s = new Intent(c, KeepAliveService.class);
+                if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s);
+              } catch (Exception e) { }
+            }
+          }
+          JAVA
+          cat > $D/KeepAlivePlugin.java <<'JAVA'
+          package com.hostanup.matchtick;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.PowerManager;
+          import android.provider.Settings;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+          @CapacitorPlugin(name = "KeepAlive")
+          public class KeepAlivePlugin extends Plugin {
+            @PluginMethod
+            public void start(PluginCall call) {
+              Context c = getContext();
+              Intent s = new Intent(c, KeepAliveService.class);
+              if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s);
+              call.resolve();
+            }
+            @PluginMethod
+            public void battery(PluginCall call) {
+              Context c = getContext();
+              try {
+                PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
+                if (!pm.isIgnoringBatteryOptimizations(c.getPackageName())) {
+                  Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                  i.setData(Uri.parse("package:" + c.getPackageName()));
