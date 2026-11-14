@@ -250,7 +250,9 @@ document.addEventListener('change',e=>{
 });
 render();
 sc();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)sc()});
+function keep(){try{const k=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.KeepAlive;if(!k)return;k.start().catch(()=>{});if(!localStorage.getItem('matchtick.bat')){localStorage.setItem('matchtick.bat','1');k.battery().catch(()=>{})}}catch(e){}}
+keep();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){sc();keep()}});
 </script>
 </body>
 </html>
