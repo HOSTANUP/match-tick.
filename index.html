@@ -119,19 +119,13 @@ async function doSched(){
  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
  const list=[],now=Date.now(),t0=iso(new Date()),dl=cfg.dl||15;
  const mk=(id,title,body,at)=>({id:id,title:title,body:body,channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
- if(cfg.nt||cfg.nr){
-  for(let i=0;i<5;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-   for(let m=cfg.st;m<=cfg.en;m+=15){
-    const at=new Date(d.getTime()+m*60000);
-    if(at.getTime()>now){
-     const parts=[];let title='Tick baaki hai ⏰';
-     if(cfg.nr&&!day[m]){parts.push(label(m)+' ka match host karne ka time ho gaya');title='Match ka time 🎮'}
-     if(cfg.nt&&m-15>=cfg.st&&!day[m-15])parts.push(label(m-15)+' ka tick baaki hai');
-     if(parts.length)list.push(mk(nid(ds,m),title,parts.join('\n'),at));
-    }
-   }
-   if(cfg.nt&&!day[cfg.en]){const at=new Date(d.getTime()+(cfg.en+dl)*60000);
-    if(at.getTime()>now)list.push(mk(nid(ds,cfg.en)+50000000,'Tick baaki hai ⏰',label(cfg.en)+' ka tick baaki hai',at))}
+ for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
+  for(let m=cfg.st;m<=cfg.en;m+=15){
+   if(day[m])continue;
+   const at=new Date(d.getTime()+m*60000);
+   if(cfg.nr&&at.getTime()>now)list.push(mk(nid(ds,m),'🎮 Match host karo',label(m)+' ka match shuru karne ka time ho gaya',at));
+   const at2=new Date(d.getTime()+(m+dl)*60000);
+   if(cfg.nt&&at2.getTime()>now)list.push(mk(nid(ds,m)+50000000,'⏰ Tick baaki hai',label(m)+' wale match ka tick nahi kiya. Abhi tick karo.',at2));
   }
  }
  const pend=await ln.getPending();
@@ -205,7 +199,7 @@ function sett(){
  +'<div class="sec">Reminder</div><div class="card">'
  +'<div class="fr"><span>Match ke time par</span>'+sw('nr',cfg.nr)+'</div>'
  +'<div class="fr"><span>Tick bhulne par</span>'+sw('nt',cfg.nt)+'</div>'
- +'<div class="fr"><span>Aakhri slot ke baad (minute)</span><input type="number" id="dl" inputmode="numeric" value="'+(cfg.dl||15)+'"></div>'
+ +'<div class="fr"><span>Tick reminder, slot ke baad (minute)</span><input type="number" id="dl" inputmode="numeric" value="'+(cfg.dl||15)+'"></div>'
  +'<div class="note" id="si">'+schedInfo+'</div>'
  +'<button class="ghost" data-a="test">Test notification bhejo</button></div>'
  +'<div class="sec">Data</div><div class="card"><textarea id="bk" placeholder="Backup text yahan aayega, ya restore ke liye paste karo"></textarea>'
