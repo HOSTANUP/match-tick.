@@ -273,7 +273,7 @@ function render(){
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-a],[data-i]');if(!b)return;
  if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();const n=((db[cur][m]||0)+1)%4;if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate([[8],[14],[10,50,10],[30,60,30]][n]);
-  if(n)db[cur][m]=n;else delete db[cur][m];save();scrolled=true;lastTap=m;tick();summary();return}
+  if(n)db[cur][m]=n;else delete db[cur][m];const th=cur+'_'+Math.floor(m/60);Object.keys(open).forEach(k=>{if(k!==th)delete open[k]});save();scrolled=true;lastTap=m;tick();summary();return}
  const a=b.dataset.a;
  if(a.slice(0,2)==='v-'){view=a.slice(2);scrolled=view!=='tick'?false:scrolled}
  else if(a.slice(0,3)==='th-'){cfg.th=a.slice(3);save();applyTheme()}
