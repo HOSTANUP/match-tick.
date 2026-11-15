@@ -7,7 +7,8 @@
 <title>Match Tick</title>
 <style>
 :root{--bg:#f5f6f8;--card:#fff;--tx:#0f172a;--mut:#6b7280;--bd:#e8ebf0;--g:#0f6e4f;--gt:#0f6e4f;--gs:#e5f4ed;--lt:#4d7c0f;--ls:#f0f9d8;--rt:#b42318;--rs:#fdecec;--r:#dc2626;--am:#f59e0b}
-@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--tx:#e6edf3;--mut:#8b949e;--bd:#262c36;--gt:#4ade80;--gs:#12382b;--lt:#bef264;--ls:#2a3512;--rt:#fca5a5;--rs:#3a1618}}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0f14;--card:#121a22;--tx:#e8f1f2;--mut:#7d8b99;--bd:#1f2a35;--gt:#3ddc97;--gs:#0f3a2b;--lt:#c6f36b;--ls:#2b3a10;--rt:#ff8a8a;--rs:#3d1519}}
+:root[data-theme="dark"]{--bg:#0a0f14;--card:#121a22;--tx:#e8f1f2;--mut:#7d8b99;--bd:#1f2a35;--gt:#3ddc97;--gs:#0f3a2b;--lt:#c6f36b;--ls:#2b3a10;--rt:#ff8a8a;--rs:#3d1519}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,sans-serif;padding:0 16px 150px}
 button{font-family:inherit}
@@ -18,7 +19,7 @@ button{font-family:inherit}
 .hero{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;margin-bottom:14px}
 .hero small{display:block;font-size:12px;color:var(--mut)}
 .hero b{font-size:28px;letter-spacing:-.5px;color:var(--gt)}
-.hero .r{width:42%;text-align:right}
+
 .prog{height:6px;border-radius:6px;background:var(--bd);margin-top:8px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--g);border-radius:6px}
 .hr{display:grid;grid-template-columns:44px repeat(4,1fr);gap:6px;align-items:center;margin-bottom:6px}
@@ -33,7 +34,26 @@ button{font-family:inherit}
 .s:active{transform:scale(.93)}
 .s.m{color:var(--mut)}
 .s.m:after{content:"";position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--am)}
-.s.n{box-shadow:0 0 0 2px var(--am)}
+@keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes pl{0%,100%{box-shadow:0 0 0 2px var(--am)}50%{box-shadow:0 0 0 5px rgba(245,158,11,.35)}}
+@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.s.n{animation:pl 1.8s infinite}.s.pop{animation:pop .28s}
+#app.fx>*{animation:fd .22s}
+.gr{font-size:12.5px;color:var(--mut);margin:0 2px 8px}
+.hero svg{flex:none}
+.strip{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:6px}
+.strip span{width:44px;font-size:11px;font-weight:600;color:var(--mut)}
+.strip b{display:flex;gap:16px;font-size:14px}
+.strip u{text-decoration:none;font-weight:700}
+u.c{color:var(--gt)}u.f{color:var(--lt)}u.x{color:var(--rt)}
+.chart{display:flex;align-items:flex-end;gap:8px;padding:14px 12px 10px;margin-top:14px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.bc i{width:100%;max-width:26px;border-radius:7px 7px 3px 3px;background:var(--gs)}
+.bc i.t{background:var(--g)}
+.bc small,.bc span{font-size:10px;color:var(--mut)}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px}
+.seg button{border:0;background:none;padding:8px 12px;border-radius:10px;color:var(--mut);font-size:14px}
+.seg button.on{background:var(--card);color:var(--tx);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 #sum{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));display:flex;align-items:center;padding:8px 14px;background:var(--card);border-top:1px solid var(--bd)}
 #sum span{flex:1;text-align:center;font-size:14px;font-weight:600}
 #sum i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
@@ -88,7 +108,7 @@ textarea{width:100%;height:76px;margin-top:12px;font-size:12px;padding:10px;bord
 </nav>
 <script>
 const K='matchtick.v2';
-let db={},cfg={pr:3.5,st:600,en:1320,nt:true,dl:15,nr:true,rb:0};
+let db={},cfg={pr:3.5,st:600,en:1320,nt:true,dl:15,nr:true,rb:0,th:'auto'};
 try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(K+'c')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}sc()};
 const $=id=>document.getElementById(id);
@@ -154,8 +174,10 @@ async function testNote(){
   toast('5 second mein notification aayega');
  }catch(e){toast('Notification nahi chala')}
 }
+function applyTheme(){try{const r=document.documentElement;if(cfg.th==='dark'||cfg.th==='light')r.setAttribute('data-theme',cfg.th);else r.removeAttribute('data-theme')}catch(e){}}
+function countUp(el,to){const from=shownK==null?0:shownK;shownK=to;if(typeof requestAnimationFrame==='undefined'||from===to){el.textContent=money(to);return}const t0=Date.now();(function f(){const p=Math.min(1,(Date.now()-t0)/450);el.textContent=money(from+(to-from)*p);if(p<1)requestAnimationFrame(f)})()}
 const cls={1:'c',2:'f',3:'x'};
-let hist=[],lastTxt='';let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
+let hist=[],lastTxt='',open={},lastTap=null,shownK=null;let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
 
 function summary(){
  const n=cnt(db[cur]);
@@ -164,28 +186,38 @@ function summary(){
 }
 const sl=m=>{const h=Math.floor(m/60);return ((h+11)%12+1)+':'+String(m%60).padStart(2,'0')};
 function tick(){
- const day=db[cur]||{},now=new Date(),isT=cur===iso(now),nm=now.getHours()*60+now.getMinutes();
- const n0=cnt(day),tot=Math.floor((cfg.en-cfg.st)/15)+1,dn=n0.c+n0.f+n0.x;
- let h='<div class="top"><div class="dbar"><button data-a="pd">‹</button><div data-a="today">'+dl(cur)+'</div><button data-a="nd">›</button></div>'
- +'<div class="hero"><div><small>Kamai</small><b>'+money((n0.c+n0.f)*cfg.pr)+'</b></div><div class="r"><small>'+dn+' / '+tot+' bhare</small><div class="prog"><i style="width:'+Math.round(dn/tot*100)+'%"></i></div></div></div></div>';
+ const day=db[cur]||{},now=new Date(),td=iso(now),isT=cur===td,nm=now.getHours()*60+now.getMinutes();
+ const n0=cnt(day),tot=Math.floor((cfg.en-cfg.st)/15)+1,dn=n0.c+n0.f+n0.x,K=(n0.c+n0.f)*cfg.pr;
+ let rem=0;for(let m=cfg.st;m<=cfg.en;m+=15)if(!day[m]&&m+15>(isT?nm:0))rem++;
+ let g='';
+ if(isT){const H=now.getHours();g=dn>=tot?'Day complete ✓ Great work, aaj ka total '+money(K)+'.':H<12?'Good morning, Host 👋 Aaj ke '+tot+' matches ready hain.':H<17?'Good afternoon. '+dn+' matches done, '+rem+' baaki.':H<21?'Good evening. Strong day, '+money(K)+' ab tak.':'Almost there. Sirf '+rem+' matches aur baaki.'}
+ const C=2*Math.PI*27,off=C*(1-Math.min(1,dn/tot));
+ let h='<div class="top"><div class="dbar"><button data-a="pd">‹</button><div data-a="today">'+dl(cur)+'</div><button data-a="nd">›</button></div>'+(g?'<div class="gr">'+g+'</div>':'')
+ +'<div class="hero"><div><small>Kamai</small><b id="kv">'+money(K)+'</b></div><svg width="66" height="66" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--bd)" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--g)" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 32 32)"/><text x="32" y="36" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">'+dn+'/'+tot+'</text></svg></div></div>';
  if(isT)for(let m=cfg.st;m<=cfg.en;m+=15){if(m<=nm&&nm<m+15&&!day[m])h+='<button class="ghost" style="background:var(--g);color:#fff;border:0;margin:6px 0 14px" data-i="'+m+'">✓ Abhi wala ('+label(m)+') pura mark karo</button>'}
  for(let hr=Math.floor(cfg.st/60);hr<=Math.floor(cfg.en/60);hr++){
+  const ms=[];for(let q=0;q<4;q++){const m=hr*60+q*15;if(m>=cfg.st&&m<=cfg.en)ms.push(m)}
+  const full=ms.every(m=>day[m]),over=isT?(hr*60+60<=nm):cur<td;
+  if(full&&over&&!open[cur+'_'+hr]){
+   h+='<div class="strip" data-a="hx" data-h="'+hr+'"><span>'+hlabel(hr)+'</span><b>'+ms.map(m=>'<u class="'+cls[day[m]]+'">'+(day[m]==1?'✓':day[m]==2?'↩':'✕')+'</u>').join('')+'</b></div>';continue}
   h+='<div class="hr"><span>'+hlabel(hr)+'</span>';
   for(let q=0;q<4;q++){
    const m=hr*60+q*15;
    if(m<cfg.st||m>cfg.en){h+='<div></div>';continue}
    const st=day[m]||0,past=isT&&m+15<=nm,nowS=isT&&m<=nm&&nm<m+15;
-   h+='<button class="s '+(cls[st]||'')+(past&&!st?' m':'')+(nowS?' n':'')+'" data-i="'+m+'"'+(nowS?' id="now"':'')+'>'+(st?'<i>'+(st==1?'✓':st==2?'↩':'✕')+'</i>':'')+sl(m)+'</button>';
+   h+='<button class="s '+(cls[st]||'')+(past&&!st?' m':'')+(nowS?' n':'')+(String(m)===String(lastTap)?' pop':'')+'" data-i="'+m+'"'+(nowS?' id="now"':'')+'>'+(st?'<i>'+(st==1?'✓':st==2?'↩':'✕')+'</i>':'')+sl(m)+'</button>';
   }
   h+='</div>';
  }
+ lastTap=null;
  $('app').innerHTML=h;
+ countUp($('kv'),K);
  if(!scrolled){scrolled=true;const e=$('now');if(e&&e.scrollIntoView)e.scrollIntoView({block:'center'})}
 }
 function hisab(){
  const d=pd(wk),off=(d.getDay()+6)%7,mon=addD(wk,-off),sun=addD(mon,6),today=iso(new Date());
- let tc=0,rows='',tx='';
- for(let i=0;i<7;i++){const s=addD(mon,i),dt=pd(s),n=cnt(db[s]),t=n.c+n.f;tc+=t;tx+=dl(s)+': '+t+' match\n';
+ let tc=0,rows='',tx='',vals=[],dts=[];
+ for(let i=0;i<7;i++){const s=addD(mon,i),dt=pd(s),n=cnt(db[s]),t=n.c+n.f;tc+=t;vals.push(t*cfg.pr);dts.push(s);tx+=dl(s)+': '+t+' match\n';
   rows+='<div class="day'+(t+n.x==0?' z':'')+(s===today?' td':'')+'"><div class="dn"><b>'+DN[dt.getDay()]+'</b><small>'+dt.getDate()+' '+MN[dt.getMonth()]+'</small></div>'
   +'<div class="ch"><em style="--c:var(--g)">'+n.c+'</em><em style="--c:#84cc16">'+n.f+'</em><em style="--c:var(--r)">'+n.x+'</em></div>'
   +'<div class="am"><b>'+money(t*cfg.pr)+'</b><small>'+t+' match</small></div></div>'}
@@ -193,12 +225,14 @@ function hisab(){
  lastTxt='Match Tick '+rng+'\n'+tx+'Total: '+tc+' match = '+money(tc*cfg.pr);
  $('app').innerHTML='<div class="wk"><button data-a="pw">‹</button><div>'+rng+'</div><button data-a="nw">›</button></div>'
  +'<div class="hero g"><small>Is hafte ki kamai</small><b>'+money(tc*cfg.pr)+'</b><small>'+tc+' match × '+money(cfg.pr)+'</small></div>'
+ +'<div class="card chart">'+vals.map((v,i)=>'<div class="bc"><small>'+(v?Math.round(v):'')+'</small><i class="'+(dts[i]===today?'t':'')+'" style="height:'+Math.round(v/Math.max(1,...vals)*70+4)+'px"></i><span>'+DN[pd(dts[i]).getDay()]+'</span></div>').join('')+'</div>'
  +'<div class="card" style="padding:0;margin-top:14px">'+rows+'</div>'
  +'<button class="ghost" data-a="share">Hafte ka summary share / copy</button>';
 }
 const sw=(id,on)=>'<label class="sw"><input type="checkbox" id="'+id+'" '+(on?'checked':'')+'><span></span></label>';
 function sett(){
  $('app').innerHTML='<div class="ttl">Settings</div>'
+ +'<div class="sec">Look</div><div class="card"><div class="fr"><span>Theme</span><div class="seg">'+['auto','light','dark'].map(x=>'<button data-a="th-'+x+'" class="'+((cfg.th||'auto')===x?'on':'')+'">'+x[0].toUpperCase()+x.slice(1)+'</button>').join('')+'</div></div></div>'
  +'<div class="sec">Match</div><div class="card">'
  +'<div class="fr"><span>Ek match ka rate</span><div class="in">₹<input type="number" id="pr" inputmode="decimal" step="any" value="'+cfg.pr+'"></div></div>'
  +'<div class="fr"><span>Pehla match</span><input type="time" id="st" value="'+hhmm(cfg.st)+'"></div>'
@@ -216,14 +250,17 @@ function sett(){
 function render(){
  ['tick','hisab','set'].forEach(v=>$('t-'+v).className=v===view?'on':'');
  summary();
+ $('app').className='fx';setTimeout(()=>{$('app').className=''},300);
  if(view==='tick')tick();else if(view==='hisab')hisab();else sett();
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-a],[data-i]');if(!b)return;
  if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(12);const n=((db[cur][m]||0)+1)%4;
-  if(n)db[cur][m]=n;else delete db[cur][m];save();scrolled=true;tick();summary();return}
+  if(n)db[cur][m]=n;else delete db[cur][m];save();scrolled=true;lastTap=m;tick();summary();return}
  const a=b.dataset.a;
  if(a.slice(0,2)==='v-'){view=a.slice(2);scrolled=view!=='tick'?false:scrolled}
+ else if(a.slice(0,3)==='th-'){cfg.th=a.slice(3);save();applyTheme()}
+ else if(a==='hx'){const k=cur+'_'+b.dataset.h;open[k]=!open[k];scrolled=true}
  else if(a==='pd'){cur=addD(cur,-1);scrolled=true}
  else if(a==='nd'){cur=addD(cur,1);scrolled=true}
  else if(a==='today'){cur=iso(new Date());scrolled=false}
@@ -249,6 +286,7 @@ document.addEventListener('change',e=>{
   if(!isNaN(a)&&!isNaN(b)&&b>=a){cfg.st=a;cfg.en=b;save()}else{$('st').value=hhmm(cfg.st);$('en').value=hhmm(cfg.en)}
  }
 });
+applyTheme();
 render();
 sc();
 function keep(){try{const k=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.KeepAlive;if(!k)return;k.start().catch(()=>{});if(!localStorage.getItem('matchtick.bat')){localStorage.setItem('matchtick.bat','1');k.battery().catch(()=>{})}}catch(e){}}
