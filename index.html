@@ -22,11 +22,11 @@ button{font-family:inherit}
 
 .prog{height:6px;border-radius:6px;background:var(--bd);margin-top:8px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--g);border-radius:6px}
-.hr{display:grid;grid-template-columns:44px repeat(4,1fr);gap:6px;align-items:center;margin-bottom:6px}
+.hr{display:grid;grid-template-columns:44px repeat(4,1fr);gap:8px;align-items:center;margin-bottom:8px}
 .hr span{font-size:11px;font-weight:600;color:var(--mut)}
 .top{position:sticky;top:0;z-index:5;background:var(--bg);margin:0 -16px 6px;padding:max(10px,env(safe-area-inset-top)) 16px 4px}
 .top .hero{margin-bottom:6px}
-.s{position:relative;transition:transform .08s;height:44px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:14px;font-weight:500;padding:0}
+.s{position:relative;transition:transform .08s;height:48px;font-size:15px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:14px;font-weight:500;padding:0}
 .s i{font-style:normal;font-size:11px;margin-right:3px}
 .s.c{background:var(--gs);border-color:transparent;color:var(--gt);font-weight:700}
 .s.f{background:var(--ls);border-color:transparent;color:var(--lt);font-weight:700}
@@ -39,8 +39,14 @@ button{font-family:inherit}
 @keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .s.n{animation:pl 1.8s infinite}.s.pop{animation:pop .28s}
 #app.fx>*{animation:fd .22s}
-.gr{font-size:12.5px;color:var(--mut);margin:0 2px 8px}
+.gr{font-size:14px;color:var(--mut);margin:2px 2px 6px}
 .hero svg{flex:none}
+.hd{padding:max(16px,env(safe-area-inset-top)) 2px 4px}.ttl2{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.done{background:linear-gradient(135deg,#0f6e4f,#13926a);color:#fff;border-radius:16px;padding:14px 18px;font-weight:700;margin-bottom:12px;text-align:center}
+.conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:20}
+.conf i{position:absolute;top:-14px;width:8px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
+.strip{border-left:4px solid var(--g)!important}.strip.sf{border-left-color:#84cc16!important}.strip.sx{border-left-color:var(--r)!important}.strip em{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;color:var(--mut)}
 .strip{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:6px}
 .strip span{width:44px;font-size:11px;font-weight:600;color:var(--mut)}
 .strip b{display:flex;gap:16px;font-size:14px}
@@ -55,13 +61,15 @@ u.c{color:var(--gt)}u.f{color:var(--lt)}u.x{color:var(--rt)}
 .seg button{border:0;background:none;padding:8px 12px;border-radius:10px;color:var(--mut);font-size:14px}
 .seg button.on{background:var(--card);color:var(--tx);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 #sum{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));display:flex;align-items:center;padding:8px 14px;background:var(--card);border-top:1px solid var(--bd)}
-#sum span{flex:1;text-align:center;font-size:14px;font-weight:600}
-#sum i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+#sum span{flex:1;text-align:center;font-size:13px;font-weight:700;margin-right:6px;padding:9px 4px;border-radius:20px}
+#sum span.p1{background:var(--gs);color:var(--gt)}#sum span.p2{background:var(--ls);color:var(--lt)}#sum span.p3{background:var(--rs);color:var(--rt)}
+
 #sum .undo{width:40px;height:36px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:var(--mut);font-size:19px}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;height:60px;border:0;background:none;color:var(--mut);font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 nav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 nav button.on{color:var(--gt);font-weight:700}
+nav button.on svg{background:var(--gs);padding:4px 16px;box-sizing:content-box;border-radius:14px;width:22px}
 .wk{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
 .hero.g{display:block;background:linear-gradient(135deg,#0f6e4f,#13926a);border:0;color:#fff;padding:20px}
 .hero.g small{color:rgba(255,255,255,.8)}
@@ -182,24 +190,32 @@ let hist=[],lastTxt='',open={},lastTap=null,shownK=null;let view='tick',cur=iso(
 function summary(){
  const n=cnt(db[cur]);
  $('sum').style.display=view==='tick'?'flex':'none';
- $('sum').innerHTML='<span><i style="background:var(--g)"></i>'+n.c+' Pure</span><span><i style="background:#84cc16"></i>'+n.f+' Refund</span><span><i style="background:var(--r)"></i>'+n.x+' Cancel</span><button class="undo" data-a="undo" aria-label="Undo">↶</button>';
+ $('sum').innerHTML='<span class="p1">✓ '+n.c+' Pure</span><span class="p2">↩ '+n.f+' Refund</span><span class="p3">✕ '+n.x+' Cancel</span><button class="undo" data-a="undo" aria-label="Undo">↶</button>';
 }
+function confetti(){let c='';const cl=['#0f6e4f','#a3e635','#f59e0b','#3ddc97','#ef4444','#60a5fa'];for(let i=0;i<28;i++)c+='<i style="left:'+Math.round(Math.random()*100)+'%;background:'+cl[i%6]+';animation-delay:'+(Math.random()*.5).toFixed(2)+'s;animation-duration:'+(1.6+Math.random()*1.2).toFixed(2)+'s"></i>';setTimeout(()=>{const e=$('conf');if(e&&e.remove)e.remove()},3400);return '<div class="conf" id="conf">'+c+'</div>'}
 const sl=m=>{const h=Math.floor(m/60);return ((h+11)%12+1)+':'+String(m%60).padStart(2,'0')};
 function tick(){
  const day=db[cur]||{},now=new Date(),td=iso(now),isT=cur===td,nm=now.getHours()*60+now.getMinutes();
  const n0=cnt(day),tot=Math.floor((cfg.en-cfg.st)/15)+1,dn=n0.c+n0.f+n0.x,K=(n0.c+n0.f)*cfg.pr;
  let rem=0;for(let m=cfg.st;m<=cfg.en;m+=15)if(!day[m]&&m+15>(isT?nm:0))rem++;
- let g='';
- if(isT){const H=now.getHours();g=dn>=tot?'Day complete ✓ Great work, aaj ka total '+money(K)+'.':H<12?'Good morning, Host 👋 Aaj ke '+tot+' matches ready hain.':H<17?'Good afternoon. '+dn+' matches done, '+rem+' baaki.':H<21?'Good evening. Strong day, '+money(K)+' ab tak.':'Almost there. Sirf '+rem+' matches aur baaki.'}
+ let T=dl(cur),S='';const wasTap=lastTap!=null;
+ if(isT){const H=now.getHours();
+  if(dn>=tot){T='Day complete ✓';S='Great work, aaj ka total '+money(K)+'.'}
+  else if(H<12){T='Good morning, Host 👋';S='Aaj ke '+tot+' matches ready hain.'}
+  else if(H<17){T='Good afternoon, Host';S=dn+' matches done, '+rem+' baaki.'}
+  else if(H<21){T='Good evening, Host';S='Strong day, '+money(K)+' ab tak.'}
+  else{T='Almost there 🔥';S='Sirf '+rem+' matches aur baaki.'}}
  const C=2*Math.PI*27,off=C*(1-Math.min(1,dn/tot));
- let h='<div class="top"><div class="dbar"><button data-a="pd">‹</button><div data-a="today">'+dl(cur)+'</div><button data-a="nd">›</button></div>'+(g?'<div class="gr">'+g+'</div>':'')
- +'<div class="hero"><div><small>Kamai</small><b id="kv">'+money(K)+'</b></div><svg width="66" height="66" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--bd)" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--g)" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 32 32)"/><text x="32" y="36" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">'+dn+'/'+tot+'</text></svg></div></div>';
+ let h='<div class="hd"><div class="ttl2">'+T+'</div>'+(S?'<div class="gr">'+S+'</div>':'')+'</div><div class="top"><div class="dbar"><button data-a="pd">‹</button><div data-a="today">'+dl(cur)+'</div><button data-a="nd">›</button></div>'
+ +'<div class="hero"><div><small>Kamai</small><b id="kv">'+money(K)+'</b></div><svg width="66" height="66" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--bd)" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--g)" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 32 32)"/><text x="32" y="36" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">'+dn+'/'+tot+'</text></svg></div></div>'+(dn>=tot?'<div class="done">🎉 Day complete · '+money(K)+'</div>':'');
  if(isT)for(let m=cfg.st;m<=cfg.en;m+=15){if(m<=nm&&nm<m+15&&!day[m])h+='<button class="ghost" style="background:var(--g);color:#fff;border:0;margin:6px 0 14px" data-i="'+m+'">✓ Abhi wala ('+label(m)+') pura mark karo</button>'}
+ let lastH=-1;Object.keys(day).forEach(k=>{if(day[k])lastH=Math.max(lastH,Math.floor(+k/60))});
  for(let hr=Math.floor(cfg.st/60);hr<=Math.floor(cfg.en/60);hr++){
   const ms=[];for(let q=0;q<4;q++){const m=hr*60+q*15;if(m>=cfg.st&&m<=cfg.en)ms.push(m)}
-  const full=ms.every(m=>day[m]),over=isT?(hr*60+60<=nm):cur<td;
+  const full=ms.every(m=>day[m]),over=cur<td||hr<lastH;
   if(full&&over&&!open[cur+'_'+hr]){
-   h+='<div class="strip" data-a="hx" data-h="'+hr+'"><span>'+hlabel(hr)+'</span><b>'+ms.map(m=>'<u class="'+cls[day[m]]+'">'+(day[m]==1?'✓':day[m]==2?'↩':'✕')+'</u>').join('')+'</b></div>';continue}
+   const nf=ms.filter(m=>day[m]==2).length,nx=ms.filter(m=>day[m]==3).length,okc=ms.length-nx;
+   h+='<div class="strip'+(nx?' sx':nf?' sf':'')+'" data-a="hx" data-h="'+hr+'"><span>'+hlabel(hr)+'</span><b>'+ms.map(m=>'<u class="'+cls[day[m]]+'">'+(day[m]==1?'✓':day[m]==2?'↩':'✕')+'</u>').join('')+'</b><em>'+okc+'/'+ms.length+'</em></div>';continue}
   h+='<div class="hr"><span>'+hlabel(hr)+'</span>';
   for(let q=0;q<4;q++){
    const m=hr*60+q*15;
@@ -210,6 +226,7 @@ function tick(){
   h+='</div>';
  }
  lastTap=null;
+ if(dn>=tot&&wasTap)h+=confetti();
  $('app').innerHTML=h;
  countUp($('kv'),K);
  if(!scrolled){scrolled=true;const e=$('now');if(e&&e.scrollIntoView)e.scrollIntoView({block:'center'})}
@@ -255,7 +272,7 @@ function render(){
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-a],[data-i]');if(!b)return;
- if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(12);const n=((db[cur][m]||0)+1)%4;
+ if(b.dataset.i){const m=b.dataset.i;db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();const n=((db[cur][m]||0)+1)%4;if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate([[8],[14],[10,50,10],[30,60,30]][n]);
   if(n)db[cur][m]=n;else delete db[cur][m];save();scrolled=true;lastTap=m;tick();summary();return}
  const a=b.dataset.a;
  if(a.slice(0,2)==='v-'){view=a.slice(2);scrolled=view!=='tick'?false:scrolled}
