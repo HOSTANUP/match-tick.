@@ -56,11 +56,13 @@ jobs:
                 nm.createNotificationChannel(new NotificationChannel("keep", "Match Tick chalu hai", NotificationManager.IMPORTANCE_MIN));
               }
               PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+          String txt = "Reminder chalu hain";
+          if (intent != null && intent.getStringExtra("text") != null) txt = intent.getStringExtra("text");
               int icon = getResources().getIdentifier("ic_stat_tick", "drawable", getPackageName());
               if (icon == 0) icon = android.R.drawable.ic_dialog_info;
               Notification n = new NotificationCompat.Builder(this, "keep")
                 .setContentTitle("Match Tick")
-                .setContentText("Reminder chalu hain")
+                .setContentText(txt)
                 .setSmallIcon(icon)
                 .setContentIntent(pi)
                 .setOngoing(true)
@@ -107,8 +109,12 @@ jobs:
             @PluginMethod
             public void start(PluginCall call) {
               Context c = getContext();
-              Intent s = new Intent(c, KeepAliveService.class);
-              if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s);
+              try {
+                Intent s = new Intent(c, KeepAliveService.class);
+                String t = call.getString("text");
+                if (t != null) s.putExtra("text", t);
+                if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(s); else c.startService(s);
+              } catch (Exception e) { }
               call.resolve();
             }
             @PluginMethod
