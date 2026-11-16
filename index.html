@@ -249,6 +249,7 @@ function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t;paintWarn()
 function warnHtml(){const m={perm:'Notification band hai. Phone Settings → Apps → Match Tick → Notifications allow karo',none:'Reminder lage nahi hain',err:'Reminder lagne mein dikkat aayi',off:'Reminder band hain'}[remWarn];return m?'<div class="warn"><span>⚠️ '+m+'</span><button data-a="fixrem">Theek karo</button></div>':''}
 function paintWarn(){const e=$('warn');if(e)e.innerHTML=warnHtml()}
 function onNote(e){try{const x=e.notification&&e.notification.extra;if(!x||!x.d)return;const st=e.actionId==='ok'?1:e.actionId==='cx'?3:0;if(!st)return;db[x.d]=db[x.d]||{};if(!db[x.d][x.m]){db[x.d][x.m]=st;save();toast(st==1?'✓ Pura mark ho gaya':'✕ Cancel mark ho gaya');render()}}catch(err){}}
+function pullMarks(){const k=KA();if(!k||!k.takeMarks)return;k.takeMarks().then(r=>{const ms=(r&&r.marks)||[];let ch=false;ms.forEach(x=>{db[x.d]=db[x.d]||{};if(!db[x.d][x.m]){db[x.d][x.m]=x.st;ch=true}});if(ch){save();toast('Notification se tick ho gaya ✓');render()}}).catch(()=>{})}
 function liveText(){return 'Reminder chalu hain ✓'}
 async function sched(){
  if(busy){again=true;return}
@@ -266,20 +267,13 @@ async function doSched(){
  const list=[],now=Date.now(),t0=iso(new Date()),dl=cfg.dl||15;
  const ka=KA();
  if(ka&&ka.schedule){
-  const items=[];
-  for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-   for(let m=cfg.st;m<=cfg.en;m+=15){
-    const at=d.getTime()+m*60000;if(at<=now)continue;
-    const parts=[];let title='⏰ Tick baaki hai';
-    if(cfg.nr&&!day[m]){parts.push(label(m)+' ka match shuru karne ka time ho gaya');title='🎮 Match host karo'}
-    if(cfg.nt&&m-15>=cfg.st&&!day[m-15])parts.push(label(m-15)+' ka tick baaki hai');
-    if(parts.length)items.push({id:nid(ds,m),at:at,title:title,body:parts.join('\n')});
-   }
-   if(cfg.nt&&!day[cfg.en]){const at=d.getTime()+(cfg.en+dl)*60000;if(at>now)items.push({id:nid(ds,cfg.en)+50000000,at:at,title:'⏰ Tick baaki hai',body:label(cfg.en)+' ka tick baaki hai'})}
-  }
+  const items=[],pend=[],tn=new Date(),nm0=tn.getHours()*60+tn.getMinutes(),dayT=db[t0]||{};
+  for(let m=cfg.st;m<=cfg.en;m+=15)if(!dayT[m]&&m<=nm0)pend.push({d:t0,m:m});
+  if(cfg.nr)for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
+   for(let m=cfg.st;m<=cfg.en;m+=15){const at=d.getTime()+m*60000;if(at<=now||day[m])continue;items.push({id:nid(ds,m),at:at,title:'🎮 Match host karo',body:label(m)+' ka match shuru karne ka time ho gaya',d:ds,m:m})}}
   const p0=await ln.getPending();if(p0.notifications&&p0.notifications.length)await ln.cancel({notifications:p0.notifications.map(x=>({id:x.id}))});
-  const r=await ka.schedule({items:items}),n=(r&&r.count)||0;
-  remWarn=(!cfg.nt&&!cfg.nr)?'off':(items.length&&n===0?'none':'');
+  const r=await ka.schedule({items:items,pend:pend}),n=(r&&r.count)||0;
+  remWarn=!cfg.nr?'off':(items.length&&n===0?'none':'');
   const nx=items[0]?new Date(items[0].at):null;
   setInfo(n+' alarm lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
   return;
@@ -458,8 +452,6 @@ function sett(){
  +'<div class="fr"><span>Aakhri match</span><input type="time" id="en" value="'+hhmm(cfg.en)+'"></div></div>'
  +'<div class="sec">Reminder</div><div class="card">'
  +'<div class="fr"><span>Match ke time par</span>'+sw('nr',cfg.nr)+'</div>'
- +'<div class="fr"><span>Tick bhulne par</span>'+sw('nt',cfg.nt)+'</div>'
- +'<div class="fr"><span>Tick reminder, slot ke baad (minute)</span><input type="number" id="dl" inputmode="numeric" value="'+(cfg.dl||15)+'"></div>'
  +'<div class="note" id="si">'+schedInfo+'</div>'
  +'<button class="ghost" data-a="test">Test notification bhejo</button></div>'
  +'<div class="sec">Data</div><div class="card"><textarea id="bk" placeholder="Backup text yahan aayega, ya restore ke liye paste karo"></textarea>'
@@ -518,10 +510,11 @@ let tx0=0,ty0=0;
 document.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(view!=='tick'||isFocus())return;const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;if(Math.abs(dx)>90&&Math.abs(dy)<45){cur=addD(cur,dx<0?1:-1);scrolled=true;render()}},{passive:true});
 setInterval(keep,300000);
+setInterval(pullMarks,3000);pullMarks();
 let lastToday=iso(new Date());
 function dayRoll(){const t=iso(new Date());if(t===lastToday)return;if(cur===lastToday)cur=t;if(wk===lastToday)wk=t;lastToday=t;scrolled=false;shownK=null;sc();render()}
 setInterval(dayRoll,20000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){dayRoll();sc();keep()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){dayRoll();sc();keep();pullMarks()}});
 </script>
 </body>
 </html>
