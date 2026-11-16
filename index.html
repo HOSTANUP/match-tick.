@@ -209,6 +209,7 @@ nav button{height:52px}
 .report{min-height:calc(100vh - 6px)}
 .hero.g{padding:16px 20px}.hero.g b{font-size:44px;margin:2px 0}
 .day{padding:11px 16px}.day .am{margin-left:auto}
+.warn{display:flex;align-items:center;gap:10px;margin:0 4px 10px;background:var(--rs);color:var(--rt);border:1px solid var(--r);border-radius:14px;padding:10px 14px;font-size:13px;font-weight:600}.warn button{margin-left:auto;flex:none;border:0;background:var(--r);color:#fff;border-radius:10px;padding:7px 12px;font-weight:700;font-size:12px}
 </style>
 </head>
 <body>
@@ -241,37 +242,44 @@ const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(
 const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
 const LN=()=>{try{return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications}catch(e){return null}};
 const nid=(ds,m)=>Math.round(Date.UTC(+ds.slice(0,4),+ds.slice(5,7)-1,+ds.slice(8,10))/864e5)*100+m/15;
-let scT=0,busy=false,again=false,schedInfo='Abhi check ho raha hai...';
+let remWarn='',lnL=false,scT=0,busy=false,again=false,schedInfo='Abhi check ho raha hai...';
 function sc(){clearTimeout(scT);scT=setTimeout(sched,500)}
-function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t}
+function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t;paintWarn()}
+function warnHtml(){const m={perm:'Notification band hai. Phone Settings → Apps → Match Tick → Notifications allow karo',none:'Reminder lage nahi hain',err:'Reminder lagne mein dikkat aayi',off:'Reminder band hain'}[remWarn];return m?'<div class="warn"><span>⚠️ '+m+'</span><button data-a="fixrem">Theek karo</button></div>':''}
+function paintWarn(){const e=$('warn');if(e)e.innerHTML=warnHtml()}
+function onNote(e){try{const x=e.notification&&e.notification.extra;if(!x||!x.d)return;const st=e.actionId==='ok'?1:e.actionId==='cx'?3:0;if(!st)return;db[x.d]=db[x.d]||{};if(!db[x.d][x.m]){db[x.d][x.m]=st;save();toast(st==1?'✓ Pura mark ho gaya':'✕ Cancel mark ho gaya');render()}}catch(err){}}
+function liveText(){const now=new Date(),day=db[iso(now)]||{},nm=now.getHours()*60+now.getMinutes();let p=0,nx=null;for(let m=cfg.st;m<=cfg.en;m+=15){if(!day[m]&&m<=nm)p++;if(nx==null&&m>nm)nx=m}return (nx!=null?'Agla match '+label(nx):'Aaj ke matches khatam')+' · '+(p?p+' tick baaki':'sab tick ho gaya')}
 async function sched(){
  if(busy){again=true;return}
  busy=true;
- try{await doSched()}catch(e){setInfo('Reminder lagne mein dikkat: '+(e&&e.message?e.message:e))}
- busy=false;if(again){again=false;sc()}
+ try{await doSched()}catch(e){remWarn='err';setInfo('Reminder lagne mein dikkat: '+(e&&e.message?e.message:e))}
+ busy=false;keep();if(again){again=false;sc()}
 }
 async function doSched(){
  const ln=LN();if(!ln){setInfo('Reminder sirf APK app mein chalte hain');return}
+ if(!lnL){lnL=true;try{ln.addListener('localNotificationActionPerformed',onNote)}catch(e){}}
  let p=await ln.checkPermissions();
- if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted'){setInfo('Notification ki permission allow nahi hai');return}}
+ if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted'){remWarn='perm';setInfo('Notification ki permission allow nahi hai');return}}
  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
+ try{await ln.registerActionTypes({types:[{id:'TICK',actions:[{id:'ok',title:'✓ Pura'},{id:'cx',title:'✕ Cancel'}]}]})}catch(e){}
  const list=[],now=Date.now(),t0=iso(new Date()),dl=cfg.dl||15;
- const mk=(id,title,body,at)=>({id:id,title:title,body:body,channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}});
+ const mk=(id,title,body,at,ex)=>Object.assign({id:id,title:title,body:body,channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}},ex?{actionTypeId:'TICK',extra:ex}:{});
  for(let i=0;i<2;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
   for(let m=cfg.st;m<=cfg.en;m+=15){
    if(day[m])continue;
    const at=new Date(d.getTime()+m*60000);
    if(cfg.nr&&at.getTime()>now)list.push(mk(nid(ds,m),'🎮 Match host karo',label(m)+' ka match shuru karne ka time ho gaya',at));
    const at2=new Date(d.getTime()+(m+dl)*60000);
-   if(cfg.nt&&at2.getTime()>now)list.push(mk(nid(ds,m)+50000000,'⏰ Tick baaki hai',label(m)+' wale match ka tick nahi kiya. Abhi tick karo.',at2));
+   if(cfg.nt&&at2.getTime()>now)list.push(mk(nid(ds,m)+50000000,'⏰ Tick baaki hai',label(m)+' wale match ka tick nahi kiya. Abhi tick karo.',at2,{d:ds,m:m}));
    const at3=new Date(d.getTime()+(m+dl+10)*60000);
-   if(cfg.nt&&at3.getTime()>now)list.push(mk(nid(ds,m)+60000000,'⏰ Tick abhi bhi baaki hai',label(m)+' wale match ka tick ab tak nahi hua. Tick kar do.',at3));
+   if(cfg.nt&&at3.getTime()>now)list.push(mk(nid(ds,m)+60000000,'⏰ Tick abhi bhi baaki hai',label(m)+' wale match ka tick ab tak nahi hua. Tick kar do.',at3,{d:ds,m:m}));
   }
  }
  const pend=await ln.getPending();
  if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
  for(let i=0;i<list.length;i+=40)await ln.schedule({notifications:list.slice(i,i+40)});
  const chk=await ln.getPending(),n=chk.notifications?chk.notifications.length:0;
+ remWarn=(!cfg.nt&&!cfg.nr)?'off':(list.length&&n===0?'none':'');
  list.sort((x,y)=>x.schedule.at-y.schedule.at);
  const nx=list[0]?new Date(list[0].schedule.at):null;
  setInfo(n+' reminder lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
@@ -301,7 +309,7 @@ function summary(){
 }
 function confetti(){let c='';const cl=['#0f6e4f','#a3e635','#f59e0b','#3ddc97','#ef4444','#60a5fa'];for(let i=0;i<28;i++)c+='<i style="left:'+Math.round(Math.random()*100)+'%;background:'+cl[i%6]+';animation-delay:'+(Math.random()*.5).toFixed(2)+'s;animation-duration:'+(1.6+Math.random()*1.2).toFixed(2)+'s"></i>';setTimeout(()=>{const e=$('conf');if(e&&e.remove)e.remove()},3400);return '<div class="conf" id="conf">'+c+'</div>'}
 const sl=m=>{const h=Math.floor(m/60);return ((h+11)%12+1)+':'+String(m%60).padStart(2,'0')};
-const segHtml=()=>'<div class="seg mini">'+['focus','list'].map(x=>'<button data-a="vm-'+x+'" class="'+((cfg.vm||'focus')===x?'on':'')+'">'+(x==='focus'?'Focus':'List')+'</button>').join('')+'</div>';
+const segHtml=()=>'<div class="seg mini">'+['focus','list'].map(x=>'<button data-a="vm-'+x+'" class="'+((cfg.vm||'focus')===x?'on':'')+'">'+(x==='focus'?'Focus':'List')+'</button>').join('')+'</div><div id="warn">'+warnHtml()+'</div>';
 const isFocus=()=>cfg.vm!=='list'&&cur===iso(new Date());
 function tick(){if(isFocus())focus();else listView()}
 function setMark(m,st){db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();db[cur][m]=st;if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate([[8],[14],[10,50,10],[30,60,30]][st]);save()}
@@ -320,7 +328,7 @@ function fly(st){
 function ftick(){
  if(view!=='tick'||!isFocus()){clearInterval(fT);return}
  const n=new Date(),t=n.getHours()*60+n.getMinutes()+n.getSeconds()/60;
- if(Math.floor(t/15)!==fk){focus();return}
+ if(Math.floor(t/15)!==fk){keep();focus();return}
  const fc=$('fc'),c=$('fp');
  if(fc&&c){const m=+fc.dataset.m,el=Math.min(1,Math.max(0,(t-m)/15)),rem=1-el;if(el<1){c.setAttribute('stroke-dashoffset',(628.3*el).toFixed(1));c.setAttribute('stroke',rem>.5?'#13926a':rem>.2?'#f59e0b':'#ef4444');c.setAttribute('class',rem<=.2?'urg':'')}}
  const cd=$('cd');if(cd){let nx=null;for(let q=cfg.st;q<=cfg.en;q+=15)if(q>t){nx=q;break}
@@ -461,6 +469,7 @@ document.addEventListener('click',e=>{
  else if(a==='reset'){if(confirm('Is din ke saare ticks hata dun?')){delete db[cur];save()}}
  else if(a==='undo'){const u=hist.pop();if(!u){toast('Undo ke liye kuch nahi');return}db[u.d]=db[u.d]||{};if(u.p)db[u.d][u.m]=u.p;else delete db[u.d][u.m];save();cur=u.d;scrolled=true}
  else if(a==='share'){if(typeof navigator!=='undefined'&&navigator.share){navigator.share({text:lastTxt}).catch(()=>copy(lastTxt))}else copy(lastTxt);return}
+ else if(a==='fixrem'){if(remWarn==='off'){cfg.nt=true;cfg.nr=true;save()}else sched();return}
  else if(a==='test'){testNote();return}
  else if(a==='bkup'){const t=JSON.stringify({db:db,cfg:cfg});$('bk').value=t;copy(t);return}
  else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
@@ -482,11 +491,12 @@ setTimeout(()=>{const e=$('boot');if(e&&e.remove)e.remove()},1100);
 applyTheme();
 render();
 sc();
-function keep(){try{const k=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.KeepAlive;if(!k)return;k.start().catch(()=>{});if(!localStorage.getItem('matchtick.bat')){localStorage.setItem('matchtick.bat','1');k.battery().catch(()=>{})}}catch(e){}}
+function keep(){try{const k=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.KeepAlive;if(!k)return;k.start({text:liveText()}).catch(()=>{});if(!localStorage.getItem('matchtick.bat')){localStorage.setItem('matchtick.bat','1');k.battery().catch(()=>{})}}catch(e){}}
 keep();
 let tx0=0,ty0=0;
 document.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(view!=='tick'||isFocus())return;const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;if(Math.abs(dx)>90&&Math.abs(dy)<45){cur=addD(cur,dx<0?1:-1);scrolled=true;render()}},{passive:true});
+setInterval(keep,300000);
 let lastToday=iso(new Date());
 function dayRoll(){const t=iso(new Date());if(t===lastToday)return;if(cur===lastToday)cur=t;if(wk===lastToday)wk=t;lastToday=t;scrolled=false;shownK=null;sc();render()}
 setInterval(dayRoll,20000);
