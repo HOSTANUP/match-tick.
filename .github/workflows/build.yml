@@ -377,7 +377,7 @@ jobs:
               if (at <= 0) return "Aaj ke matches khatam";
               return "Agla match " + new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at));
             }
-            static String pendText(int n) { return n == 0 ? "sab tick ho gaya" : n + " tick baaki"; }
+            static String pendText(int n) { return n == 0 ? "" : n + " tick baaki"; }
             static PendingIntent act(Context c, String d, String m, int st) {
               Intent i = new Intent(c, ActionReceiver.class);
               i.setAction("mt.act." + st);
@@ -398,17 +398,30 @@ jobs:
               if (icon == 0) icon = android.R.drawable.ic_dialog_info;
               NotificationCompat.Builder b = new NotificationCompat.Builder(c, "keep2")
                 .setContentTitle("Match Tick")
-                .setContentText(nextText(at) + " · " + pendText(q.size()))
+                .setContentText(q.isEmpty() ? nextText(at) : nextText(at) + " · " + pendText(q.size()))
+                .setShowWhen(false)
                 .setSmallIcon(icon)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(open);
-              if (at > 0) {
-                b.setUsesChronometer(true);
-                b.setChronometerCountDown(true);
-                b.setWhen(at);
+              RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.notif_status);
+              rv.setTextViewText(R.id.nTitle, nextText(at));
+              if (at > 0 && Build.VERSION.SDK_INT >= 24) {
+                rv.setViewVisibility(R.id.nTimer, 0);
+                rv.setChronometerCountDown(R.id.nTimer, true);
+                rv.setChronometer(R.id.nTimer, SystemClock.elapsedRealtime() + (at - System.currentTimeMillis()), "%s baaki", true);
+              } else {
+                rv.setViewVisibility(R.id.nTimer, 8);
               }
+              if (q.isEmpty()) {
+                rv.setViewVisibility(R.id.nSub, 8);
+              } else {
+                rv.setViewVisibility(R.id.nSub, 0);
+                rv.setTextViewText(R.id.nSub, q.size() + " tick baaki");
+              }
+              b.setCustomContentView(rv);
+              b.setStyle(new NotificationCompat.DecoratedCustomViewStyle());
               if (!q.isEmpty()) {
                 String[] f = q.get(0);
                 b.addAction(0, "✓ Pura", act(c, f[0], f[1], 1));
@@ -498,6 +511,31 @@ jobs:
             <solid android:color="#0D1B22" />
             <corners android:radius="22dp" />
           </shape>
+          XML
+          cat > $R/layout/notif_status.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="vertical">
+            <TextView
+                android:id="@+id/nTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Compat.Notification.Title" />
+            <Chronometer
+                android:id="@+id/nTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Compat.Notification"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/nSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Compat.Notification.Line2" />
+          </LinearLayout>
           XML
           python3 - <<'PY'
           p='android/app/src/main/AndroidManifest.xml'
