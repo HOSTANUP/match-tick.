@@ -240,6 +240,7 @@ const money=n=>'₹'+Math.round(n*100)/100;
 const cnt=day=>{const v=Object.values(day||{});return{c:v.filter(x=>x==1).length,f:v.filter(x=>x==2).length,x:v.filter(x=>x==3).length}};
 const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(()=>{e.style.opacity=0},1800)};
 const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
+const KA=()=>{try{return window.Capacitor.Plugins.KeepAlive}catch(e){return null}};
 const LN=()=>{try{return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications}catch(e){return null}};
 const nid=(ds,m)=>Math.round(Date.UTC(+ds.slice(0,4),+ds.slice(5,7)-1,+ds.slice(8,10))/864e5)*100+m/15;
 let remWarn='',lnL=false,scT=0,busy=false,again=false,schedInfo='Abhi check ho raha hai...';
@@ -248,7 +249,7 @@ function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t;paintWarn()
 function warnHtml(){const m={perm:'Notification band hai. Phone Settings → Apps → Match Tick → Notifications allow karo',none:'Reminder lage nahi hain',err:'Reminder lagne mein dikkat aayi',off:'Reminder band hain'}[remWarn];return m?'<div class="warn"><span>⚠️ '+m+'</span><button data-a="fixrem">Theek karo</button></div>':''}
 function paintWarn(){const e=$('warn');if(e)e.innerHTML=warnHtml()}
 function onNote(e){try{const x=e.notification&&e.notification.extra;if(!x||!x.d)return;const st=e.actionId==='ok'?1:e.actionId==='cx'?3:0;if(!st)return;db[x.d]=db[x.d]||{};if(!db[x.d][x.m]){db[x.d][x.m]=st;save();toast(st==1?'✓ Pura mark ho gaya':'✕ Cancel mark ho gaya');render()}}catch(err){}}
-function liveText(){const now=new Date(),day=db[iso(now)]||{},nm=now.getHours()*60+now.getMinutes();let p=0,nx=null;for(let m=cfg.st;m<=cfg.en;m+=15){if(!day[m]&&m<=nm)p++;if(nx==null&&m>nm)nx=m}if(nm<cfg.st)return 'Pehla match '+label(cfg.st)+' par';return (nx!=null?'Agla match '+label(nx):'Aaj ke matches khatam')+' · '+(p?p+' tick baaki':'sab tick ho gaya')}
+function liveText(){return 'Reminder chalu hain ✓'}
 async function sched(){
  if(busy){again=true;return}
  busy=true;
@@ -263,6 +264,26 @@ async function doSched(){
  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
  try{await ln.registerActionTypes({types:[{id:'TICK',actions:[{id:'ok',title:'✓ Pura'},{id:'cx',title:'✕ Cancel'}]}]})}catch(e){}
  const list=[],now=Date.now(),t0=iso(new Date()),dl=cfg.dl||15;
+ const ka=KA();
+ if(ka&&ka.schedule){
+  const items=[];
+  for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
+   for(let m=cfg.st;m<=cfg.en;m+=15){
+    const at=d.getTime()+m*60000;if(at<=now)continue;
+    const parts=[];let title='⏰ Tick baaki hai';
+    if(cfg.nr&&!day[m]){parts.push(label(m)+' ka match shuru karne ka time ho gaya');title='🎮 Match host karo'}
+    if(cfg.nt&&m-15>=cfg.st&&!day[m-15])parts.push(label(m-15)+' ka tick baaki hai');
+    if(parts.length)items.push({id:nid(ds,m),at:at,title:title,body:parts.join('\n')});
+   }
+   if(cfg.nt&&!day[cfg.en]){const at=d.getTime()+(cfg.en+dl)*60000;if(at>now)items.push({id:nid(ds,cfg.en)+50000000,at:at,title:'⏰ Tick baaki hai',body:label(cfg.en)+' ka tick baaki hai'})}
+  }
+  const p0=await ln.getPending();if(p0.notifications&&p0.notifications.length)await ln.cancel({notifications:p0.notifications.map(x=>({id:x.id}))});
+  const r=await ka.schedule({items:items}),n=(r&&r.count)||0;
+  remWarn=(!cfg.nt&&!cfg.nr)?'off':(items.length&&n===0?'none':'');
+  const nx=items[0]?new Date(items[0].at):null;
+  setInfo(n+' alarm lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
+  return;
+ }
  const mk=(id,title,body,at,ex)=>Object.assign({id:id,title:title,body:body,channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}},ex?{actionTypeId:'TICK',extra:ex}:{});
  for(let i=0;i<2;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
   for(let m=cfg.st;m<=cfg.en;m+=15){
