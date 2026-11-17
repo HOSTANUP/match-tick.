@@ -377,7 +377,24 @@ jobs:
               if (at <= 0) return "Aaj ke matches khatam";
               return "Agla match " + new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at));
             }
+            static String timeText(long at) { return new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at)); }
             static String pendText(int n) { return n == 0 ? "" : n + " tick baaki"; }
+            static String slotText(String m) {
+              int mm = Integer.parseInt(m);
+              int h = mm / 60;
+              int h12 = (h + 11) % 12 + 1;
+              return h12 + ":" + (mm % 60 < 10 ? "0" : "") + (mm % 60) + " " + (h < 12 ? "AM" : "PM");
+            }
+            static String pendLine(List<String[]> q) {
+              if (q.isEmpty()) return "";
+              StringBuilder sb = new StringBuilder("Tick baaki: ");
+              for (int i = 0; i < q.size() && i < 3; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(slotText(q.get(i)[1]));
+              }
+              if (q.size() > 3) sb.append(" +").append(q.size() - 3);
+              return sb.toString();
+            }
             static PendingIntent act(Context c, String d, String m, int st) {
               Intent i = new Intent(c, ActionReceiver.class);
               i.setAction("mt.act." + st);
@@ -398,7 +415,7 @@ jobs:
               if (icon == 0) icon = android.R.drawable.ic_dialog_info;
               NotificationCompat.Builder b = new NotificationCompat.Builder(c, "keep2")
                 .setContentTitle("Match Tick")
-                .setContentText(q.isEmpty() ? nextText(at) : nextText(at) + " · " + pendText(q.size()))
+                .setContentText(q.isEmpty() ? nextText(at) : nextText(at) + " · " + pendLine(q))
                 .setShowWhen(false)
                 .setSmallIcon(icon)
                 .setOngoing(true)
@@ -406,26 +423,28 @@ jobs:
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(open);
               RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.notif_status);
-              rv.setTextViewText(R.id.nTitle, nextText(at));
+              rv.setTextViewText(R.id.nLabel, at > 0 ? "AGLA MATCH" : "AAJ KA KAAM");
+              rv.setTextViewText(R.id.nTitle, at > 0 ? timeText(at) : "Matches khatam");
               if (at > 0 && Build.VERSION.SDK_INT >= 24) {
-                rv.setViewVisibility(R.id.nTimer, 0);
+                rv.setViewVisibility(R.id.nRight, 0);
                 rv.setChronometerCountDown(R.id.nTimer, true);
-                rv.setChronometer(R.id.nTimer, SystemClock.elapsedRealtime() + (at - System.currentTimeMillis()), "%s baaki", true);
+                rv.setChronometer(R.id.nTimer, SystemClock.elapsedRealtime() + (at - System.currentTimeMillis()), "%s", true);
               } else {
-                rv.setViewVisibility(R.id.nTimer, 8);
+                rv.setViewVisibility(R.id.nRight, 8);
               }
               if (q.isEmpty()) {
                 rv.setViewVisibility(R.id.nSub, 8);
               } else {
                 rv.setViewVisibility(R.id.nSub, 0);
-                rv.setTextViewText(R.id.nSub, q.size() + " tick baaki");
+                rv.setTextViewText(R.id.nSub, pendLine(q));
               }
+              b.setColor(0xFF13926A);
               b.setCustomContentView(rv);
               b.setStyle(new NotificationCompat.DecoratedCustomViewStyle());
               if (!q.isEmpty()) {
                 String[] f = q.get(0);
-                b.addAction(0, "✓ Pura", act(c, f[0], f[1], 1));
-                b.addAction(0, "✕ Cancel", act(c, f[0], f[1], 3));
+                b.addAction(0, "✓ Pura " + slotText(f[1]), act(c, f[0], f[1], 1));
+                b.addAction(0, "✕ Cancel " + slotText(f[1]), act(c, f[0], f[1], 3));
               }
               return b.build();
             }
@@ -442,12 +461,12 @@ jobs:
                 int[] ids = am.getAppWidgetIds(new ComponentName(c, MatchWidget.class));
                 if (ids == null || ids.length == 0) return;
                 long at = nextAt(c);
-                int pend = queue(c).size();
+                List<String[]> pq = queue(c);
                 PendingIntent open = PendingIntent.getActivity(c, 0, new Intent(c, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
                 for (int k = 0; k < ids.length; k++) {
                   RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.match_widget);
                   rv.setTextViewText(R.id.wTitle, nextText(at));
-                  rv.setTextViewText(R.id.wSub, pendText(pend));
+                  rv.setTextViewText(R.id.wSub, pendLine(pq));
                   if (at > 0 && Build.VERSION.SDK_INT >= 24) {
                     rv.setViewVisibility(R.id.wTimer, 0);
                     rv.setChronometerCountDown(R.id.wTimer, true);
@@ -515,27 +534,70 @@ jobs:
           cat > $R/layout/notif_status.xml <<'XML'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/nRoot"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
-              android:orientation="vertical">
-            <TextView
-                android:id="@+id/nTitle"
+              android:orientation="horizontal"
+              android:gravity="center_vertical"
+              android:padding="12dp"
+              android:background="@drawable/notif_bg">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+              <TextView
+                  android:id="@+id/nLabel"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:textColor="#7BE0B3"
+                  android:textSize="11sp"
+                  android:textStyle="bold"
+                  android:letterSpacing="0.12" />
+              <TextView
+                  android:id="@+id/nTitle"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:textColor="#FFFFFF"
+                  android:textSize="22sp"
+                  android:textStyle="bold" />
+              <TextView
+                  android:id="@+id/nSub"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:textColor="#FFC857"
+                  android:textSize="12sp"
+                  android:textStyle="bold" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/nRight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Compat.Notification.Title" />
-            <Chronometer
-                android:id="@+id/nTimer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Compat.Notification"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-            <TextView
-                android:id="@+id/nSub"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Compat.Notification.Line2" />
+                android:orientation="vertical"
+                android:gravity="end">
+              <Chronometer
+                  android:id="@+id/nTimer"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:fontFamily="monospace"
+                  android:textColor="#3DDC97"
+                  android:textSize="32sp"
+                  android:textStyle="bold" />
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="minute baaki"
+                  android:textColor="#B7C4CC"
+                  android:textSize="11sp" />
+            </LinearLayout>
           </LinearLayout>
+          XML
+          cat > $R/drawable/notif_bg.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <gradient android:startColor="#0F3A2B" android:endColor="#0D1B22" android:angle="135" />
+            <corners android:radius="16dp" />
+          </shape>
           XML
           python3 - <<'PY'
           p='android/app/src/main/AndroidManifest.xml'
