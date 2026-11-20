@@ -270,7 +270,7 @@ async function doSched(){
   const items=[],pend=[],tn=new Date(),nm0=tn.getHours()*60+tn.getMinutes(),dayT=db[t0]||{};
   for(let m=cfg.st;m<=cfg.en;m+=15)if(!dayT[m]&&m<=nm0)pend.push({d:t0,m:m});
   if(cfg.nr)for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-   for(let m=cfg.st;m<=cfg.en;m+=15){const at=d.getTime()+m*60000;if(at<=now||day[m])continue;items.push({id:nid(ds,m),at:at,title:'🎮 Match host karo',body:label(m)+' ka match shuru karne ka time ho gaya',d:ds,m:m})}}
+   for(let m=cfg.st;m<=cfg.en;m+=15){const at=d.getTime()+m*60000;if(at<=now||day[m])continue;items.push({id:nid(ds,m),at:at,title:'Match host karo',body:label(m)+' ka match shuru karne ka time ho gaya',d:ds,m:m})}}
   const p0=await ln.getPending();if(p0.notifications&&p0.notifications.length)await ln.cancel({notifications:p0.notifications.map(x=>({id:x.id}))});
   const r=await ka.schedule({items:items,pend:pend}),n=(r&&r.count)||0;
   remWarn=!cfg.nr?'off':(items.length&&n===0?'none':'');
