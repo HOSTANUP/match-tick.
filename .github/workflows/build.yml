@@ -385,6 +385,11 @@ jobs:
               int h12 = (h + 11) % 12 + 1;
               return h12 + ":" + (mm % 60 < 10 ? "0" : "") + (mm % 60) + " " + (h < 12 ? "AM" : "PM");
             }
+            static String slotShort(String m) {
+              int mm = Integer.parseInt(m);
+              int h12 = (mm / 60 + 11) % 12 + 1;
+              return h12 + ":" + (mm % 60 < 10 ? "0" : "") + (mm % 60);
+            }
             static String pendLine(List<String[]> q) {
               if (q.isEmpty()) return "";
               StringBuilder sb = new StringBuilder("Tick baaki: ");
@@ -443,8 +448,9 @@ jobs:
               b.setStyle(new NotificationCompat.DecoratedCustomViewStyle());
               if (!q.isEmpty()) {
                 String[] f = q.get(0);
-                b.addAction(0, "✓ Pura " + slotText(f[1]), act(c, f[0], f[1], 1));
-                b.addAction(0, "✕ Cancel " + slotText(f[1]), act(c, f[0], f[1], 3));
+                b.addAction(0, "✓ Pura " + slotShort(f[1]), act(c, f[0], f[1], 1));
+                b.addAction(0, "↩ Refund " + slotShort(f[1]), act(c, f[0], f[1], 2));
+                b.addAction(0, "✕ Cancel " + slotShort(f[1]), act(c, f[0], f[1], 3));
               }
               return b.build();
             }
