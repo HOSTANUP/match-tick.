@@ -122,6 +122,8 @@ jobs:
                 JSArray arr = call.getArray("items");
                 JSArray pend = call.getArray("pend");
                 if (pend == null) pend = new JSArray();
+                JSObject auto = call.getObject("auto");
+                Status.sp(getContext()).edit().putString("auto", auto == null ? "{}" : auto.toString()).apply();
                 AlarmHelper.apply(getContext(), arr, pend);
                 JSObject r = new JSObject();
                 r.put("count", arr.length());
@@ -323,11 +325,26 @@ jobs:
           import org.json.JSONObject;
           public class Status {
             static SharedPreferences sp(Context c) { return c.getSharedPreferences("mt", Context.MODE_PRIVATE); }
+            static long autoMs(Context c) {
+              try { JSONObject o = new JSONObject(sp(c).getString("auto", "{}")); return o.optBoolean("on", false) ? o.optLong("ms", 0) : 0; } catch (Exception e) { return 0; }
+            }
+            static long autoSince(Context c) {
+              try { return new JSONObject(sp(c).getString("auto", "{}")).optLong("since", 0); } catch (Exception e) { return 0; }
+            }
+            static boolean expired(long ams, long since, long now, String d, int m) {
+              if (ams <= 0) return false;
+              try {
+                long dl = new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(d).getTime() + m * 60000L + ams;
+                return dl >= since && now >= dl;
+              } catch (Exception e) { return false; }
+            }
             static List<String[]> queue(Context c) {
               ArrayList<String[]> q = new ArrayList<String[]>();
               try {
                 SharedPreferences s = sp(c);
                 long now = System.currentTimeMillis();
+                long ams = autoMs(c);
+                long since = autoSince(c);
                 HashSet<String> done = new HashSet<String>();
                 String[] keys = new String[] { "marks", "held" };
                 for (int k = 0; k < keys.length; k++) {
@@ -342,14 +359,14 @@ jobs:
                 for (int i = 0; i < p.length(); i++) {
                   JSONObject o = p.getJSONObject(i);
                   String key = o.getString("d") + "|" + o.getInt("m");
-                  if (!done.contains(key) && seen.add(key)) q.add(new String[] { o.getString("d"), String.valueOf(o.getInt("m")) });
+                  if (!done.contains(key) && !expired(ams, since, now, o.getString("d"), o.getInt("m")) && seen.add(key)) q.add(new String[] { o.getString("d"), String.valueOf(o.getInt("m")) });
                 }
                 JSONArray a = new JSONArray(s.getString("alarms", "[]"));
                 for (int i = 0; i < a.length(); i++) {
                   JSONObject o = a.getJSONObject(i);
                   if (o.getLong("at") <= now && o.optInt("m", -1) >= 0) {
                     String key = o.getString("d") + "|" + o.getInt("m");
-                    if (!done.contains(key) && seen.add(key)) q.add(new String[] { o.getString("d"), String.valueOf(o.getInt("m")) });
+                    if (!done.contains(key) && !expired(ams, since, now, o.getString("d"), o.getInt("m")) && seen.add(key)) q.add(new String[] { o.getString("d"), String.valueOf(o.getInt("m")) });
                   }
                 }
               } catch (Exception e) { }
