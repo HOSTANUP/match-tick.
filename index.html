@@ -210,6 +210,9 @@ nav button{height:52px}
 .hero.g{padding:16px 20px}.hero.g b{font-size:44px;margin:2px 0}
 .day{padding:11px 16px}.day .am{margin-left:auto}
 .warn{display:flex;align-items:center;gap:10px;margin:0 4px 10px;background:var(--rs);color:var(--rt);border:1px solid var(--r);border-radius:14px;padding:10px 14px;font-size:13px;font-weight:600}.warn button{margin-left:auto;flex:none;border:0;background:var(--r);color:#fff;border-radius:10px;padding:7px 12px;font-weight:700;font-size:12px}
+.s.a{background:#0b0b0b;color:#fff;border-color:#000;font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.dt.a{background:#000;box-shadow:0 0 0 1.5px #8a8f98}
+u.a{background:#000;color:#fff;border-radius:6px;padding:0 6px}
 </style>
 </head>
 <body>
@@ -223,8 +226,9 @@ nav button{height:52px}
 </nav>
 <script>
 const K='matchtick.v2';
-let db={},cfg={pr:3.5,st:600,en:1320,nt:true,dl:15,nr:true,rb:0,th:'auto',vm:'focus'};
+let db={},cfg={pr:3.5,st:600,en:1320,nt:true,dl:15,nr:true,rb:0,th:'auto',vm:'focus',ac:true,am:5};
 try{db=JSON.parse(localStorage.getItem(K)||'{}');cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(K+'c')||'{}'))}catch(e){}
+if(!cfg.acSince)cfg.acSince=Date.now();
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));localStorage.setItem(K+'c',JSON.stringify(cfg))}catch(e){}sc()};
 const $=id=>document.getElementById(id);
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -237,7 +241,7 @@ const hlabel=h=>((h+11)%12+1)+' '+(h<12?'AM':'PM');
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
 const tom=v=>{const p=(v||'').split(':');return p.length==2?(+p[0])*60+(+p[1]):NaN};
 const money=n=>'₹'+Math.round(n*100)/100;
-const cnt=day=>{const v=Object.values(day||{});return{c:v.filter(x=>x==1).length,f:v.filter(x=>x==2).length,x:v.filter(x=>x==3).length}};
+const cnt=day=>{const v=Object.values(day||{});return{c:v.filter(x=>x==1).length,f:v.filter(x=>x==2).length,x:v.filter(x=>x==3||x==4).length}};
 const toast=t=>{const e=$('toast');e.textContent=t;e.style.opacity=1;setTimeout(()=>{e.style.opacity=0},1800)};
 const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya ✓'),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}};
 const KA=()=>{try{return window.Capacitor.Plugins.KeepAlive}catch(e){return null}};
@@ -248,8 +252,8 @@ function sc(){clearTimeout(scT);scT=setTimeout(sched,500)}
 function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t;paintWarn()}
 function warnHtml(){const m={perm:'Notification band hai. Phone Settings → Apps → Match Tick → Notifications allow karo',none:'Reminder lage nahi hain',err:'Reminder lagne mein dikkat aayi',off:'Reminder band hain'}[remWarn];return m?'<div class="warn"><span>⚠️ '+m+'</span><button data-a="fixrem">Theek karo</button></div>':''}
 function paintWarn(){const e=$('warn');if(e)e.innerHTML=warnHtml()}
-function onNote(e){try{const x=e.notification&&e.notification.extra;if(!x||!x.d)return;const st=e.actionId==='ok'?1:e.actionId==='cx'?3:0;if(!st)return;db[x.d]=db[x.d]||{};if(!db[x.d][x.m]){db[x.d][x.m]=st;save();toast(st==1?'✓ Pura mark ho gaya':'✕ Cancel mark ho gaya');render()}}catch(err){}}
-function pullMarks(){const k=KA();if(!k||!k.takeMarks)return;k.takeMarks().then(r=>{const ms=(r&&r.marks)||[];let ch=false;ms.forEach(x=>{db[x.d]=db[x.d]||{};if(!db[x.d][x.m]){db[x.d][x.m]=x.st;ch=true}});if(ch){save();toast('Notification se tick ho gaya ✓');render()}}).catch(()=>{})}
+function onNote(e){try{const x=e.notification&&e.notification.extra;if(!x||!x.d)return;const st=e.actionId==='ok'?1:e.actionId==='cx'?3:0;if(!st)return;db[x.d]=db[x.d]||{};if(!db[x.d][x.m]||db[x.d][x.m]===4){db[x.d][x.m]=st;save();toast(st==1?'✓ Pura mark ho gaya':'✕ Cancel mark ho gaya');render()}}catch(err){}}
+function pullMarks(){const k=KA();if(!k||!k.takeMarks)return;k.takeMarks().then(r=>{const ms=(r&&r.marks)||[];let ch=false;ms.forEach(x=>{db[x.d]=db[x.d]||{};if(!db[x.d][x.m]||db[x.d][x.m]===4){db[x.d][x.m]=x.st;ch=true}});if(ch){save();toast('Notification se tick ho gaya ✓');render()}}).catch(()=>{})}
 function liveText(){return 'Reminder chalu hain ✓'}
 async function sched(){
  if(busy){again=true;return}
@@ -272,7 +276,7 @@ async function doSched(){
   if(cfg.nr)for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
    for(let m=cfg.st;m<=cfg.en;m+=15){const at=d.getTime()+m*60000;if(at<=now||day[m])continue;items.push({id:nid(ds,m),at:at,title:'Match host karo',body:label(m)+' ka match shuru karne ka time ho gaya',d:ds,m:m})}}
   const p0=await ln.getPending();if(p0.notifications&&p0.notifications.length)await ln.cancel({notifications:p0.notifications.map(x=>({id:x.id}))});
-  const r=await ka.schedule({items:items,pend:pend}),n=(r&&r.count)||0;
+  const r=await ka.schedule({items:items,pend:pend,auto:{on:cfg.ac!==false,ms:(cfg.am||5)*60000,since:cfg.acSince||0}}),n=(r&&r.count)||0;
   remWarn=!cfg.nr?'off':(items.length&&n===0?'none':'');
   const nx=items[0]?new Date(items[0].at):null;
   setInfo(n+' alarm lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
@@ -314,7 +318,13 @@ async function testNote(){
 function applyTheme(){try{const r=document.documentElement;if(cfg.th==='dark'||cfg.th==='light')r.setAttribute('data-theme',cfg.th);else r.removeAttribute('data-theme')}catch(e){}}
 function countUp(el,to){const from=shownK==null?0:shownK;shownK=to;if(typeof requestAnimationFrame==='undefined'||from===to){el.textContent=money(to);return}const t0=Date.now();(function f(){const p=Math.min(1,(Date.now()-t0)/450);el.textContent=money(from+(to-from)*p);if(p<1)requestAnimationFrame(f)})()}
 function streak(){let d=iso(new Date()),n=0;const ok=x=>{const c=cnt(db[x]);return c.c+c.f>0};if(!ok(d))d=addD(d,-1);while(n<400&&ok(d)){n++;d=addD(d,-1)}return n}
-const cls={1:'c',2:'f',3:'x'};
+const cls={1:'c',2:'f',3:'x',4:'a'};
+let dragging=false;
+function autoCancel(){
+ if(cfg.ac===false)return false;
+ const now=Date.now(),ms=(cfg.am||5)*60000,t0=iso(new Date());let ch=false;
+ [addD(t0,-1),t0].forEach(ds=>{const d=pd(ds).getTime();for(let m=cfg.st;m<=cfg.en;m+=15){const dl=d+m*60000+ms;if(dl>=(cfg.acSince||0)&&now>=dl&&!(db[ds]&&db[ds][m])){db[ds]=db[ds]||{};db[ds][m]=4;ch=true}}});
+ if(ch)save();return ch}
 let hist=[],lastTxt='',open={},lastTap=null,shownK=null;let view='tick',cur=iso(new Date()),wk=iso(new Date()),scrolled=false;
 
 function summary(){
@@ -342,6 +352,7 @@ function fly(st){
 }
 function ftick(){
  if(view!=='tick'||!isFocus()){clearInterval(fT);return}
+ if(autoCancel()&&!dragging){tick();summary();return}
  const n=new Date(),t=n.getHours()*60+n.getMinutes()+n.getSeconds()/60;
  if(Math.floor(t/15)!==fk){keep();focus();return}
  const fc=$('fc'),c=$('fp');
@@ -376,10 +387,10 @@ function focus(){
  clearInterval(fT);fT=setInterval(ftick,1000);ftick();
  const fc=$('fc');if(!fc||!fc.addEventListener)return;
  let sx=0,sy=0,dx=0,dy=0,on=false,ho=false;
- fc.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;on=true;fc.style.transition='none'},{passive:true});
+ fc.addEventListener('touchstart',e=>{dragging=true;sx=e.touches[0].clientX;sy=e.touches[0].clientY;on=true;fc.style.transition='none'},{passive:true});
  fc.addEventListener('touchmove',e=>{if(!on)return;dx=e.touches[0].clientX-sx;dy=e.touches[0].clientY-sy;fc.style.transform='translate('+dx+'px,0) rotate('+dx/18+'deg)';tint(dx,0);if(Math.abs(dx)>100&&!ho){ho=true;if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(6)}if(Math.abs(dx)<=100)ho=false},{passive:true});
- fc.addEventListener('touchend',()=>{on=false;const st=Math.abs(dx)>=Math.abs(dy)?(dx>100?1:dx<-100?3:0):0;dx=0;dy=0;ho=false;if(st){try{localStorage.setItem('matchtick.sw',swN()+1)}catch(e){}fly(st)}else{fc.style.transition='transform .3s cubic-bezier(.3,1.4,.5,1)';fc.style.transform='';tint(0,0)}});
- fc.addEventListener('touchcancel',()=>{on=false;dx=0;dy=0;ho=false;fc.style.transition='transform .3s';fc.style.transform='';tint(0,0)});
+ fc.addEventListener('touchend',()=>{on=false;dragging=false;const st=Math.abs(dx)>=Math.abs(dy)?(dx>100?1:dx<-100?3:0):0;dx=0;dy=0;ho=false;if(st){try{localStorage.setItem('matchtick.sw',swN()+1)}catch(e){}fly(st)}else{fc.style.transition='transform .3s cubic-bezier(.3,1.4,.5,1)';fc.style.transform='';tint(0,0)}});
+ fc.addEventListener('touchcancel',()=>{on=false;dragging=false;dx=0;dy=0;ho=false;fc.style.transition='transform .3s';fc.style.transform='';tint(0,0)});
 }
 function listView(){
  const day=db[cur]||{},now=new Date(),td=iso(now),isT=cur===td,nm=now.getHours()*60+now.getMinutes();
@@ -393,7 +404,7 @@ function listView(){
   const ms=[];for(let q=0;q<4;q++){const m=hr*60+q*15;if(m>=cfg.st&&m<=cfg.en)ms.push(m)}
   const full=ms.every(m=>day[m]),over=cur<td||hr<lastH;
   if(full&&over&&!open[cur+'_'+hr]){
-   const nf=ms.filter(m=>day[m]==2).length,nx=ms.filter(m=>day[m]==3).length,okc=ms.length-nx;
+   const nf=ms.filter(m=>day[m]==2).length,nx=ms.filter(m=>day[m]==3||day[m]==4).length,okc=ms.length-nx;
    h+='<div class="strip'+(nx?' sx':nf?' sf':'')+'" data-a="hx" data-h="'+hr+'"><span>'+hlabel(hr)+'</span><b>'+ms.map(m=>'<u class="'+cls[day[m]]+'">'+(day[m]==1?'✓':day[m]==2?'↩':'✕')+'</u>').join('')+'</b><em>'+okc+'/'+ms.length+'</em></div>';continue}
   h+='<div class="hr"><span>'+hlabel(hr)+'</span>';
   for(let q=0;q<4;q++){
@@ -454,6 +465,7 @@ function sett(){
  +'<div class="fr"><span>Match ke time par</span>'+sw('nr',cfg.nr)+'</div>'
  +'<div class="note" id="si">'+schedInfo+'</div>'
  +'<button class="ghost" data-a="test">Test notification bhejo</button></div>'
+ +'<div class="sec">Auto cancel</div><div class="card"><div class="fr"><span>Tick na ho to auto cancel</span>'+sw('ac',cfg.ac!==false)+'</div><div class="fr"><span>Kitne minute baad</span><input type="number" id="am" inputmode="numeric" value="'+(cfg.am||5)+'"></div></div>'
  +'<div class="sec">Data</div><div class="card"><textarea id="bk" placeholder="Backup text yahan aayega, ya restore ke liye paste karo"></textarea>'
  +'<div class="two"><button class="ghost" data-a="bkup">Backup + copy</button><button class="ghost" data-a="rest">Restore</button></div>'
  +'<button class="link" data-a="reset">Aaj ke ticks hatao ('+dl(cur)+')</button></div>';
@@ -485,12 +497,14 @@ document.addEventListener('click',e=>{
  else if(a==='fixrem'){if(remWarn==='off'){cfg.nt=true;cfg.nr=true;save()}else sched();return}
  else if(a==='test'){testNote();return}
  else if(a==='bkup'){const t=JSON.stringify({db:db,cfg:cfg});$('bk').value=t;copy(t);return}
- else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
+ else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});cfg.acSince=Date.now();save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
  if(a==='v-hisab')wk=cur;
  render();
 });
 document.addEventListener('change',e=>{
  if(e.target.id==='pr'){cfg.pr=+e.target.value||0;save()}
+ if(e.target.id==='ac'){cfg.ac=e.target.checked;if(cfg.ac)cfg.acSince=Date.now();save()}
+ if(e.target.id==='am'){cfg.am=Math.max(1,Math.min(14,+e.target.value||5));cfg.acSince=Date.now();save()}
  if(e.target.id==='nr'){cfg.nr=e.target.checked;save()}
  if(e.target.id==='rb'){cfg.rb=Math.max(0,Math.min(60,+e.target.value||0));save()}
  if(e.target.id==='nt'){cfg.nt=e.target.checked;save()}
@@ -500,6 +514,8 @@ document.addEventListener('change',e=>{
   if(!isNaN(a)&&!isNaN(b)&&b>=a){cfg.st=a;cfg.en=b;save()}else{$('st').value=hhmm(cfg.st);$('en').value=hhmm(cfg.en)}
  }
 });
+setInterval(()=>{if(autoCancel()&&!dragging)render()},10000);
+autoCancel();
 setTimeout(()=>{const e=$('boot');if(e&&e.remove)e.remove()},1100);
 applyTheme();
 render();
@@ -514,7 +530,7 @@ setInterval(pullMarks,3000);pullMarks();
 let lastToday=iso(new Date());
 function dayRoll(){const t=iso(new Date());if(t===lastToday)return;if(cur===lastToday)cur=t;if(wk===lastToday)wk=t;lastToday=t;scrolled=false;shownK=null;sc();render()}
 setInterval(dayRoll,20000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){dayRoll();sc();keep();pullMarks()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){dayRoll();if(autoCancel())render();sc();keep();pullMarks()}});
 </script>
 </body>
 </html>
