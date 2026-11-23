@@ -247,73 +247,22 @@ const copy=t=>{try{navigator.clipboard.writeText(t).then(()=>toast('Copy ho gaya
 const KA=()=>{try{return window.Capacitor.Plugins.KeepAlive}catch(e){return null}};
 const LN=()=>{try{return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications}catch(e){return null}};
 const nid=(ds,m)=>Math.round(Date.UTC(+ds.slice(0,4),+ds.slice(5,7)-1,+ds.slice(8,10))/864e5)*100+m/15;
-let remWarn='',lnL=false,scT=0,busy=false,again=false,schedInfo='Abhi check ho raha hai...';
+let scT=0,busy=false,again=false;
 function sc(){clearTimeout(scT);scT=setTimeout(sched,500)}
-function setInfo(t){schedInfo=t;const e=$('si');if(e)e.textContent=t;paintWarn()}
-function warnHtml(){const m={perm:'Notification band hai. Phone Settings → Apps → Match Tick → Notifications allow karo',none:'Reminder lage nahi hain',err:'Reminder lagne mein dikkat aayi',off:'Reminder band hain'}[remWarn];return m?'<div class="warn"><span>⚠️ '+m+'</span><button data-a="fixrem">Theek karo</button></div>':''}
-function paintWarn(){const e=$('warn');if(e)e.innerHTML=warnHtml()}
-function onNote(e){try{const x=e.notification&&e.notification.extra;if(!x||!x.d)return;const st=e.actionId==='ok'?1:e.actionId==='cx'?3:0;if(!st)return;db[x.d]=db[x.d]||{};if(!db[x.d][x.m]||db[x.d][x.m]===4){db[x.d][x.m]=st;save();toast(st==1?'✓ Pura mark ho gaya':'✕ Cancel mark ho gaya');render()}}catch(err){}}
-function pullMarks(){const k=KA();if(!k||!k.takeMarks)return;k.takeMarks().then(r=>{const ms=(r&&r.marks)||[];let ch=false;ms.forEach(x=>{db[x.d]=db[x.d]||{};if(!db[x.d][x.m]||db[x.d][x.m]===4){db[x.d][x.m]=x.st;ch=true}});if(ch){save();toast('Notification se tick ho gaya ✓');render()}}).catch(()=>{})}
-function liveText(){return 'Reminder chalu hain ✓'}
 async function sched(){
  if(busy){again=true;return}
  busy=true;
- try{await doSched()}catch(e){remWarn='err';setInfo('Reminder lagne mein dikkat: '+(e&&e.message?e.message:e))}
+ try{await doSched()}catch(e){}
  busy=false;keep();if(again){again=false;sc()}
 }
 async function doSched(){
- const ln=LN();if(!ln){setInfo('Reminder sirf APK app mein chalte hain');return}
- if(!lnL){lnL=true;try{ln.addListener('localNotificationActionPerformed',onNote)}catch(e){}}
- let p=await ln.checkPermissions();
- if(p.display!=='granted'){p=await ln.requestPermissions();if(p.display!=='granted'){remWarn='perm';setInfo('Notification ki permission allow nahi hai');return}}
- try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
- try{await ln.registerActionTypes({types:[{id:'TICK',actions:[{id:'ok',title:'✓ Pura'},{id:'cx',title:'✕ Cancel'}]}]})}catch(e){}
- const list=[],now=Date.now(),t0=iso(new Date()),dl=cfg.dl||15;
- const ka=KA();
- if(ka&&ka.schedule){
-  const items=[],pend=[],tn=new Date(),nm0=tn.getHours()*60+tn.getMinutes(),dayT=db[t0]||{};
-  for(let m=cfg.st;m<=cfg.en;m+=15)if(!dayT[m]&&m<=nm0)pend.push({d:t0,m:m});
-  if(cfg.nr)for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-   for(let m=cfg.st;m<=cfg.en;m+=15){const at=d.getTime()+m*60000;if(at<=now||day[m])continue;items.push({id:nid(ds,m),at:at,title:'Match host karo',body:label(m)+' ka match shuru karne ka time ho gaya',d:ds,m:m})}}
-  const p0=await ln.getPending();if(p0.notifications&&p0.notifications.length)await ln.cancel({notifications:p0.notifications.map(x=>({id:x.id}))});
-  const r=await ka.schedule({items:items,pend:pend,auto:{on:cfg.ac!==false,ms:(cfg.am||5)*60000,since:cfg.acSince||0}}),n=(r&&r.count)||0;
-  remWarn=!cfg.nr?'off':(items.length&&n===0?'none':'');
-  const nx=items[0]?new Date(items[0].at):null;
-  setInfo(n+' alarm lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
-  return;
- }
- const mk=(id,title,body,at,ex)=>Object.assign({id:id,title:title,body:body,channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:at,allowWhileIdle:true}},ex?{actionTypeId:'TICK',extra:ex}:{});
- for(let i=0;i<2;i++){const ds=addD(t0,i),d=pd(ds),day=db[ds]||{};
-  for(let m=cfg.st;m<=cfg.en;m+=15){
-   if(day[m])continue;
-   const at=new Date(d.getTime()+m*60000);
-   if(cfg.nr&&at.getTime()>now)list.push(mk(nid(ds,m),'🎮 Match host karo',label(m)+' ka match shuru karne ka time ho gaya',at));
-   const at2=new Date(d.getTime()+(m+dl)*60000);
-   if(cfg.nt&&at2.getTime()>now)list.push(mk(nid(ds,m)+50000000,'⏰ Tick baaki hai',label(m)+' wale match ka tick nahi kiya. Abhi tick karo.',at2,{d:ds,m:m}));
-   const at3=new Date(d.getTime()+(m+dl+10)*60000);
-   if(cfg.nt&&at3.getTime()>now)list.push(mk(nid(ds,m)+60000000,'⏰ Tick abhi bhi baaki hai',label(m)+' wale match ka tick ab tak nahi hua. Tick kar do.',at3,{d:ds,m:m}));
-  }
- }
- const pend=await ln.getPending();
- if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
- for(let i=0;i<list.length;i+=40)await ln.schedule({notifications:list.slice(i,i+40)});
- const chk=await ln.getPending(),n=chk.notifications?chk.notifications.length:0;
- remWarn=(!cfg.nt&&!cfg.nr)?'off':(list.length&&n===0?'none':'');
- list.sort((x,y)=>x.schedule.at-y.schedule.at);
- const nx=list[0]?new Date(list[0].schedule.at):null;
- setInfo(n+' reminder lage hain'+(nx?' · agla: '+label(nx.getHours()*60+nx.getMinutes())+(iso(nx)===t0?'':', '+dl2(nx)):''));
-}
-const dl2=d=>d.getDate()+' '+MN[d.getMonth()];
-async function testNote(){
- const ln=LN();if(!ln){toast('Notification sirf APK app mein chalega');return}
- try{
-  let p=await ln.checkPermissions();
-  if(p.display!=='granted')p=await ln.requestPermissions();
-  if(p.display!=='granted'){toast('Notification ki permission allow karo');return}
-  try{await ln.createChannel({id:'ticks',name:'Tick reminders',importance:4,vibration:true})}catch(e){}
-  await ln.schedule({notifications:[{id:1,title:'Test ✓',body:'Notification theek chal raha hai',channelId:'ticks',smallIcon:'ic_stat_tick',iconColor:'#0F6E4F',schedule:{at:new Date(Date.now()+5000),allowWhileIdle:true}}]});
-  toast('5 second mein notification aayega');
- }catch(e){toast('Notification nahi chala')}
+ const ka=KA();if(!ka||!ka.schedule)return;
+ const ln=LN();
+ try{if(ln){const p=await ln.checkPermissions();if(p.display!=='granted')await ln.requestPermissions();
+  const p0=await ln.getPending();if(p0.notifications&&p0.notifications.length)await ln.cancel({notifications:p0.notifications.map(x=>({id:x.id}))})}}catch(e){}
+ const items=[],now=Date.now(),t0=iso(new Date());
+ for(let i=0;i<3;i++){const ds=addD(t0,i),d=pd(ds);for(let m=cfg.st;m<=cfg.en;m+=15){const at=d.getTime()+m*60000;if(at>now)items.push({id:nid(ds,m),at:at,title:'Match Tick',body:'Agla match',d:ds,m:m})}}
+ await ka.schedule({items:items});
 }
 function applyTheme(){try{const r=document.documentElement;if(cfg.th==='dark'||cfg.th==='light')r.setAttribute('data-theme',cfg.th);else r.removeAttribute('data-theme')}catch(e){}}
 function countUp(el,to){const from=shownK==null?0:shownK;shownK=to;if(typeof requestAnimationFrame==='undefined'||from===to){el.textContent=money(to);return}const t0=Date.now();(function f(){const p=Math.min(1,(Date.now()-t0)/450);el.textContent=money(from+(to-from)*p);if(p<1)requestAnimationFrame(f)})()}
@@ -334,7 +283,7 @@ function summary(){
 }
 function confetti(){let c='';const cl=['#0f6e4f','#a3e635','#f59e0b','#3ddc97','#ef4444','#60a5fa'];for(let i=0;i<28;i++)c+='<i style="left:'+Math.round(Math.random()*100)+'%;background:'+cl[i%6]+';animation-delay:'+(Math.random()*.5).toFixed(2)+'s;animation-duration:'+(1.6+Math.random()*1.2).toFixed(2)+'s"></i>';setTimeout(()=>{const e=$('conf');if(e&&e.remove)e.remove()},3400);return '<div class="conf" id="conf">'+c+'</div>'}
 const sl=m=>{const h=Math.floor(m/60);return ((h+11)%12+1)+':'+String(m%60).padStart(2,'0')};
-const segHtml=()=>'<div class="seg mini">'+['focus','list'].map(x=>'<button data-a="vm-'+x+'" class="'+((cfg.vm||'focus')===x?'on':'')+'">'+(x==='focus'?'Focus':'List')+'</button>').join('')+'</div><div id="warn">'+warnHtml()+'</div>';
+const segHtml=()=>'<div class="seg mini">'+['focus','list'].map(x=>'<button data-a="vm-'+x+'" class="'+((cfg.vm||'focus')===x?'on':'')+'">'+(x==='focus'?'Focus':'List')+'</button>').join('')+'</div>';
 const isFocus=()=>cfg.vm!=='list'&&cur===iso(new Date());
 function tick(){if(isFocus())focus();else listView()}
 function setMark(m,st){db[cur]=db[cur]||{};hist.push({d:cur,m:m,p:db[cur][m]||0});if(hist.length>50)hist.shift();db[cur][m]=st;if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate([[8],[14],[10,50,10],[30,60,30]][st]);save()}
@@ -461,10 +410,6 @@ function sett(){
  +'<div class="fr"><span>Ek match ka rate</span><div class="in">₹<input type="number" id="pr" inputmode="decimal" step="any" value="'+cfg.pr+'"></div></div>'
  +'<div class="fr"><span>Pehla match</span><input type="time" id="st" value="'+hhmm(cfg.st)+'"></div>'
  +'<div class="fr"><span>Aakhri match</span><input type="time" id="en" value="'+hhmm(cfg.en)+'"></div></div>'
- +'<div class="sec">Reminder</div><div class="card">'
- +'<div class="fr"><span>Match ke time par</span>'+sw('nr',cfg.nr)+'</div>'
- +'<div class="note" id="si">'+schedInfo+'</div>'
- +'<button class="ghost" data-a="test">Test notification bhejo</button></div>'
  +'<div class="sec">Auto cancel</div><div class="card"><div class="fr"><span>Tick na ho to auto cancel</span>'+sw('ac',cfg.ac!==false)+'</div><div class="fr"><span>Kitne minute baad</span><input type="number" id="am" inputmode="numeric" value="'+(cfg.am||5)+'"></div></div>'
  +'<div class="sec">Data</div><div class="card"><textarea id="bk" placeholder="Backup text yahan aayega, ya restore ke liye paste karo"></textarea>'
  +'<div class="two"><button class="ghost" data-a="bkup">Backup + copy</button><button class="ghost" data-a="rest">Restore</button></div>'
@@ -494,8 +439,6 @@ document.addEventListener('click',e=>{
  else if(a==='reset'){if(confirm('Is din ke saare ticks hata dun?')){delete db[cur];save()}}
  else if(a==='undo'){const u=hist.pop();if(!u){toast('Undo ke liye kuch nahi');return}db[u.d]=db[u.d]||{};if(u.p)db[u.d][u.m]=u.p;else delete db[u.d][u.m];save();cur=u.d;scrolled=true}
  else if(a==='share'){if(typeof navigator!=='undefined'&&navigator.share){navigator.share({text:lastTxt}).catch(()=>copy(lastTxt))}else copy(lastTxt);return}
- else if(a==='fixrem'){if(remWarn==='off'){cfg.nt=true;cfg.nr=true;save()}else sched();return}
- else if(a==='test'){testNote();return}
  else if(a==='bkup'){const t=JSON.stringify({db:db,cfg:cfg});$('bk').value=t;copy(t);return}
  else if(a==='rest'){try{const o=JSON.parse($('bk').value);if(!o.db)throw 0;if(!confirm('Abhi ka data hatake backup wala daal dun?'))return;db=o.db;cfg=Object.assign(cfg,o.cfg||{});cfg.acSince=Date.now();save();toast('Restore ho gaya ✓')}catch(e){toast('Backup text sahi nahi hai');return}}
  if(a==='v-hisab')wk=cur;
@@ -505,7 +448,6 @@ document.addEventListener('change',e=>{
  if(e.target.id==='pr'){cfg.pr=+e.target.value||0;save()}
  if(e.target.id==='ac'){cfg.ac=e.target.checked;if(cfg.ac)cfg.acSince=Date.now();save()}
  if(e.target.id==='am'){cfg.am=Math.max(1,Math.min(14,+e.target.value||5));cfg.acSince=Date.now();save()}
- if(e.target.id==='nr'){cfg.nr=e.target.checked;save()}
  if(e.target.id==='rb'){cfg.rb=Math.max(0,Math.min(60,+e.target.value||0));save()}
  if(e.target.id==='nt'){cfg.nt=e.target.checked;save()}
  if(e.target.id==='dl'){cfg.dl=Math.max(1,Math.min(120,+e.target.value||15));save()}
@@ -520,17 +462,16 @@ setTimeout(()=>{const e=$('boot');if(e&&e.remove)e.remove()},1100);
 applyTheme();
 render();
 sc();
-function keep(){try{const k=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.KeepAlive;if(!k)return;k.start({text:liveText()}).catch(()=>{});if(!localStorage.getItem('matchtick.bat')){localStorage.setItem('matchtick.bat','1');k.battery().catch(()=>{})}}catch(e){}}
+function keep(){try{const k=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.KeepAlive;if(!k)return;k.start({}).catch(()=>{});if(!localStorage.getItem('matchtick.bat')){localStorage.setItem('matchtick.bat','1');k.battery().catch(()=>{})}}catch(e){}}
 keep();
 let tx0=0,ty0=0;
 document.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(view!=='tick'||isFocus())return;const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;if(Math.abs(dx)>90&&Math.abs(dy)<45){cur=addD(cur,dx<0?1:-1);scrolled=true;render()}},{passive:true});
 setInterval(keep,300000);
-setInterval(pullMarks,3000);pullMarks();
 let lastToday=iso(new Date());
 function dayRoll(){const t=iso(new Date());if(t===lastToday)return;if(cur===lastToday)cur=t;if(wk===lastToday)wk=t;lastToday=t;scrolled=false;shownK=null;sc();render()}
 setInterval(dayRoll,20000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){dayRoll();if(autoCancel())render();sc();keep();pullMarks()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){dayRoll();if(autoCancel())render();sc();keep()}});
 </script>
 </body>
 </html>
