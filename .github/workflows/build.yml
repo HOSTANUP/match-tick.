@@ -122,26 +122,9 @@ jobs:
                 JSArray arr = call.getArray("items");
                 JSArray pend = call.getArray("pend");
                 if (pend == null) pend = new JSArray();
-                JSObject auto = call.getObject("auto");
-                Status.sp(getContext()).edit().putString("auto", auto == null ? "{}" : auto.toString()).apply();
                 AlarmHelper.apply(getContext(), arr, pend);
                 JSObject r = new JSObject();
                 r.put("count", arr.length());
-                call.resolve(r);
-              } catch (Exception e) {
-                call.reject(String.valueOf(e.getMessage()));
-              }
-            }
-            @PluginMethod
-            public void takeMarks(PluginCall call) {
-              try {
-                SharedPreferences s = Status.sp(getContext());
-                JSONArray a = new JSONArray(s.getString("marks", "[]"));
-                JSONArray h = new JSONArray(s.getString("held", "[]"));
-                for (int i = 0; i < a.length(); i++) h.put(a.get(i));
-                s.edit().putString("marks", "[]").putString("held", h.toString()).apply();
-                JSObject r = new JSObject();
-                r.put("marks", a);
                 call.resolve(r);
               } catch (Exception e) {
                 call.reject(String.valueOf(e.getMessage()));
@@ -218,71 +201,11 @@ jobs:
           JAVA
           cat > $D/AlarmReceiver.java <<'JAVA'
           package com.hostanup.matchtick;
-          import android.app.Notification;
-          import android.app.NotificationChannel;
-          import android.app.NotificationManager;
-          import android.app.PendingIntent;
           import android.content.BroadcastReceiver;
           import android.content.Context;
           import android.content.Intent;
-          import android.os.Build;
-          import androidx.core.app.NotificationCompat;
           public class AlarmReceiver extends BroadcastReceiver {
             @Override public void onReceive(Context c, Intent i) {
-              try {
-                NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-                if (Build.VERSION.SDK_INT >= 26) {
-                  NotificationChannel ch = new NotificationChannel("mt_alarm", "Match reminders", NotificationManager.IMPORTANCE_HIGH);
-                  ch.enableVibration(true);
-                  nm.createNotificationChannel(ch);
-                }
-                PendingIntent open = PendingIntent.getActivity(c, 0, new Intent(c, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
-                int icon = c.getResources().getIdentifier("ic_stat_tick", "drawable", c.getPackageName());
-                if (icon == 0) icon = android.R.drawable.ic_dialog_info;
-                String body = i.getStringExtra("body");
-                String title = i.getStringExtra("title");
-                Notification n = new NotificationCompat.Builder(c, "mt_alarm")
-                  .setSmallIcon(icon)
-                  .setContentTitle(title)
-                  .setContentText(body)
-                  .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                  .setPriority(NotificationCompat.PRIORITY_HIGH)
-                  .setDefaults(NotificationCompat.DEFAULT_ALL)
-                  .setCategory(NotificationCompat.CATEGORY_ALARM)
-                  .setAutoCancel(true)
-                  .setContentIntent(open)
-                  .build();
-                nm.notify(i.getIntExtra("id", 0), n);
-              } catch (Exception e) { }
-              Status.update(c);
-            }
-          }
-          JAVA
-          cat > $D/ActionReceiver.java <<'JAVA'
-          package com.hostanup.matchtick;
-          import android.content.BroadcastReceiver;
-          import android.content.Context;
-          import android.content.Intent;
-          import android.content.SharedPreferences;
-          import org.json.JSONArray;
-          import org.json.JSONObject;
-          public class ActionReceiver extends BroadcastReceiver {
-            @Override public void onReceive(Context c, Intent i) {
-              try {
-                String d = i.getStringExtra("d");
-                int m = i.getIntExtra("m", -1);
-                int st = i.getIntExtra("st", 1);
-                if (d != null && m >= 0) {
-                  SharedPreferences s = Status.sp(c);
-                  JSONArray a = new JSONArray(s.getString("marks", "[]"));
-                  JSONObject o = new JSONObject();
-                  o.put("d", d);
-                  o.put("m", m);
-                  o.put("st", st);
-                  a.put(o);
-                  s.edit().putString("marks", a.toString()).apply();
-                }
-              } catch (Exception e) { }
               Status.update(c);
             }
           }
@@ -325,59 +248,6 @@ jobs:
           import org.json.JSONObject;
           public class Status {
             static SharedPreferences sp(Context c) { return c.getSharedPreferences("mt", Context.MODE_PRIVATE); }
-            static long autoMs(Context c) {
-              try { JSONObject o = new JSONObject(sp(c).getString("auto", "{}")); return o.optBoolean("on", false) ? o.optLong("ms", 0) : 0; } catch (Exception e) { return 0; }
-            }
-            static long autoSince(Context c) {
-              try { return new JSONObject(sp(c).getString("auto", "{}")).optLong("since", 0); } catch (Exception e) { return 0; }
-            }
-            static boolean expired(long ams, long since, long now, String d, int m) {
-              if (ams <= 0) return false;
-              try {
-                long dl = new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(d).getTime() + m * 60000L + ams;
-                return dl >= since && now >= dl;
-              } catch (Exception e) { return false; }
-            }
-            static List<String[]> queue(Context c) {
-              ArrayList<String[]> q = new ArrayList<String[]>();
-              try {
-                SharedPreferences s = sp(c);
-                long now = System.currentTimeMillis();
-                long ams = autoMs(c);
-                long since = autoSince(c);
-                HashSet<String> done = new HashSet<String>();
-                String[] keys = new String[] { "marks", "held" };
-                for (int k = 0; k < keys.length; k++) {
-                  JSONArray a = new JSONArray(s.getString(keys[k], "[]"));
-                  for (int i = 0; i < a.length(); i++) {
-                    JSONObject o = a.getJSONObject(i);
-                    done.add(o.getString("d") + "|" + o.getInt("m"));
-                  }
-                }
-                HashSet<String> seen = new HashSet<String>();
-                JSONArray p = new JSONArray(s.getString("pend", "[]"));
-                for (int i = 0; i < p.length(); i++) {
-                  JSONObject o = p.getJSONObject(i);
-                  String key = o.getString("d") + "|" + o.getInt("m");
-                  if (!done.contains(key) && !expired(ams, since, now, o.getString("d"), o.getInt("m")) && seen.add(key)) q.add(new String[] { o.getString("d"), String.valueOf(o.getInt("m")) });
-                }
-                JSONArray a = new JSONArray(s.getString("alarms", "[]"));
-                for (int i = 0; i < a.length(); i++) {
-                  JSONObject o = a.getJSONObject(i);
-                  if (o.getLong("at") <= now && o.optInt("m", -1) >= 0) {
-                    String key = o.getString("d") + "|" + o.getInt("m");
-                    if (!done.contains(key) && !expired(ams, since, now, o.getString("d"), o.getInt("m")) && seen.add(key)) q.add(new String[] { o.getString("d"), String.valueOf(o.getInt("m")) });
-                  }
-                }
-              } catch (Exception e) { }
-              Collections.sort(q, new Comparator<String[]>() {
-                public int compare(String[] x, String[] y) {
-                  int r = x[0].compareTo(y[0]);
-                  return r != 0 ? r : Integer.parseInt(x[1]) - Integer.parseInt(y[1]);
-                }
-              });
-              return q;
-            }
             static long nextAt(Context c) {
               long best = 0;
               try {
@@ -395,49 +265,18 @@ jobs:
               return "Agla match " + new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at));
             }
             static String timeText(long at) { return new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at)); }
-            static String pendText(int n) { return n == 0 ? "" : n + " tick baaki"; }
-            static String slotText(String m) {
-              int mm = Integer.parseInt(m);
-              int h = mm / 60;
-              int h12 = (h + 11) % 12 + 1;
-              return h12 + ":" + (mm % 60 < 10 ? "0" : "") + (mm % 60) + " " + (h < 12 ? "AM" : "PM");
-            }
-            static String slotShort(String m) {
-              int mm = Integer.parseInt(m);
-              int h12 = (mm / 60 + 11) % 12 + 1;
-              return h12 + ":" + (mm % 60 < 10 ? "0" : "") + (mm % 60);
-            }
-            static String pendLine(List<String[]> q) {
-              if (q.isEmpty()) return "";
-              StringBuilder sb = new StringBuilder("Tick baaki: ");
-              for (int i = 0; i < q.size() && i < 3; i++) {
-                if (i > 0) sb.append(", ");
-                sb.append(slotText(q.get(i)[1]));
-              }
-              if (q.size() > 3) sb.append(" +").append(q.size() - 3);
-              return sb.toString();
-            }
-            static PendingIntent act(Context c, String d, String m, int st) {
-              Intent i = new Intent(c, ActionReceiver.class);
-              i.setAction("mt.act." + st);
-              i.putExtra("d", d);
-              i.putExtra("m", Integer.parseInt(m));
-              i.putExtra("st", st);
-              return PendingIntent.getBroadcast(c, st, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            }
             static Notification build(Context c) {
               NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
               if (Build.VERSION.SDK_INT >= 26) {
                 nm.createNotificationChannel(new NotificationChannel("keep2", "Match Tick status", NotificationManager.IMPORTANCE_LOW));
               }
-              List<String[]> q = queue(c);
               long at = nextAt(c);
               PendingIntent open = PendingIntent.getActivity(c, 0, new Intent(c, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
               int icon = c.getResources().getIdentifier("ic_stat_tick", "drawable", c.getPackageName());
               if (icon == 0) icon = android.R.drawable.ic_dialog_info;
               NotificationCompat.Builder b = new NotificationCompat.Builder(c, "keep2")
                 .setContentTitle("Match Tick")
-                .setContentText(q.isEmpty() ? nextText(at) : nextText(at) + " · " + pendLine(q))
+                .setContentText(nextText(at))
                 .setShowWhen(false)
                 .setSmallIcon(icon)
                 .setOngoing(true)
@@ -454,21 +293,10 @@ jobs:
               } else {
                 rv.setViewVisibility(R.id.nRight, 8);
               }
-              if (q.isEmpty()) {
-                rv.setViewVisibility(R.id.nSub, 8);
-              } else {
-                rv.setViewVisibility(R.id.nSub, 0);
-                rv.setTextViewText(R.id.nSub, pendLine(q));
-              }
+              rv.setViewVisibility(R.id.nSub, 8);
               b.setColor(0xFF13926A);
               b.setCustomContentView(rv);
               b.setStyle(new NotificationCompat.DecoratedCustomViewStyle());
-              if (!q.isEmpty()) {
-                String[] f = q.get(0);
-                b.addAction(0, "Pura " + slotShort(f[1]), act(c, f[0], f[1], 1));
-                b.addAction(0, "Refund " + slotShort(f[1]), act(c, f[0], f[1], 2));
-                b.addAction(0, "Cancel " + slotShort(f[1]), act(c, f[0], f[1], 3));
-              }
               return b.build();
             }
             static void update(Context c) {
@@ -484,12 +312,11 @@ jobs:
                 int[] ids = am.getAppWidgetIds(new ComponentName(c, MatchWidget.class));
                 if (ids == null || ids.length == 0) return;
                 long at = nextAt(c);
-                List<String[]> pq = queue(c);
                 PendingIntent open = PendingIntent.getActivity(c, 0, new Intent(c, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
                 for (int k = 0; k < ids.length; k++) {
                   RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.match_widget);
                   rv.setTextViewText(R.id.wTitle, nextText(at));
-                  rv.setTextViewText(R.id.wSub, pendLine(pq));
+                  rv.setTextViewText(R.id.wSub, "");
                   if (at > 0 && Build.VERSION.SDK_INT >= 24) {
                     rv.setViewVisibility(R.id.wTimer, 0);
                     rv.setChronometerCountDown(R.id.wTimer, true);
@@ -622,7 +449,7 @@ jobs:
           t=open(p).read()
           perms=''.join('<uses-permission android:name="android.permission.%s"/>\n    '%x for x in ('FOREGROUND_SERVICE','FOREGROUND_SERVICE_SPECIAL_USE','RECEIVE_BOOT_COMPLETED','REQUEST_IGNORE_BATTERY_OPTIMIZATIONS','WAKE_LOCK'))
           t=t.replace('<application',perms+'<application',1)
-          svc='<service android:name="com.hostanup.matchtick.KeepAliveService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="match reminders"/></service>\n    <receiver android:name="com.hostanup.matchtick.BootReceiver" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter></receiver>\n    <receiver android:name="com.hostanup.matchtick.AlarmReceiver" android:exported="false"/>\n    <receiver android:name="com.hostanup.matchtick.ActionReceiver" android:exported="false"/>\n    <receiver android:name="com.hostanup.matchtick.MatchWidget" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/match_widget_info"/></receiver>\n  '
+          svc='<service android:name="com.hostanup.matchtick.KeepAliveService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="match reminders"/></service>\n    <receiver android:name="com.hostanup.matchtick.BootReceiver" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter></receiver>\n    <receiver android:name="com.hostanup.matchtick.AlarmReceiver" android:exported="false"/>\n    <receiver android:name="com.hostanup.matchtick.MatchWidget" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/match_widget_info"/></receiver>\n  '
           t=t.replace('</application>',svc+'</application>',1)
           open(p,'w').write(t)
           PY
